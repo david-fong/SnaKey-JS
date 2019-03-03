@@ -1,18 +1,24 @@
+/* Coloring for the grid */
 .grid {
-    background-color: #3f5e77;
-    border-spacing: 2px;
-    empty-cells: show;
+    background-color:   #3f5e77;
+    border-spacing:     2px;
+    empty-cells:        show;
 }
 
-.tile {
-    height:         1.2em;
-    width:          1.1em;
-    text-align:     center;
-    vertical-align: middle;
-    border:         2px black;
-    border-collapse:collapse;
+/* Generic formatting for any tile in the grid */
+.grid td {
+    height:             1.2em;
+    width:              1.1em;
+    text-align:         center;
+    vertical-align:     middle;
     
+    border-collapse:    collapse;
+    
+    font:               system 8pt bold;
+}
+
+/* Coloring for tiles containing no game elements. */
+.tile {
     background-color:   #2e3b48;
-    color:              white;
-    font:       system 8pt bold;
+    color:              #aebde2;
 }
