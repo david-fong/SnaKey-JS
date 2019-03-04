@@ -1,6 +1,6 @@
 var languages = {
-  'english_lower': {}
+  'english_lower': {},
 }
 for (let c of 'abcdefghijklmnopqrstuvwxyz') {
-  languages['english_lower'][c] = [c]
+  languages['english_lower'][c] = c;
 }
