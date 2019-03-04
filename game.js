@@ -20,13 +20,14 @@ class Tile {
 
 // weights is a dict from choices to their weights.
 function weighted_choice(weights) {
-  function sum(total, num) {return total + num};
+  function sum(total, num) {return total + num;}
   let total_weight = Object.values(weights).reduce(sum);
   let random = Math.random() * total_weight;
   for (let [choice, weight] of Object.entries(weights)) {
-    if (random < total_weight) return choice;
+    if (random < weight) return choice;
     else random -= weight;
   }
+  document.write('uhoh');
   return Object.keys(weights)[0];
 }
 
@@ -48,7 +49,6 @@ class Game {
         let cell        = d_row.insertCell();
         cell.id         = 't' + x + ',' + y;
         cell.className  = 'tile';
-        cell.innerHTML  = 'o';
         row.push(new Tile(new Pos(x, y), cell));
       }
       this.grid.push(row);
@@ -79,6 +79,11 @@ class Game {
     // Re-shuffle all tiles:
     for (let row of this.grid) {
       for (let tile of row) {
+        tile.key = ' ';
+      }
+    }
+    for (let row of this.grid) {
+      for (let tile of row) {
         this.shuffle(tile);
       }
     }
@@ -94,6 +99,7 @@ class Game {
     rows = rows.map(function(row){
       return row.slice(lb, ub);
     });
+    // Filter out tiles that are characters:
     let neighbors = [].concat(...rows);
     neighbors = neighbors.filter(function(tile){
       return tile.key in this.language;
@@ -103,19 +109,18 @@ class Game {
     // won't cause movement ambiguities:
     let valid = [];
     let l = this.language;
+    console.log(l);
     for (let opt in this.language) {
-      if (!neighbors.some(function(nb){
-        return l[nb.key].inside(l[opt]) || l[opt].inside(l[nb.key]);
-      })) {
-        valid.push(opt.key);
-      }
+      if (!neighbors.some(function(nb) {
+        return l[nb.key].includes(l[opt]) || l[opt].includes(l[nb.key]);
+      }, this)) { valid.push(opt); }
     }
     
     // Initialize weights for valid keys and choose one:
-    weights = {};
-    for (let key of valid) weights[key] = this.populations[key];
+    let weights = {};
+    for (let key of valid) { weights[key] = this.populations[key]; }
     let lowest = Math.min(...Object.values(weights));
-    for (let key of valid) Math.pow(4, lowest-weights[key]);
+    for (let key of valid) { weights[key] = Math.pow(4, lowest-weights[key]); }
     let choice = weighted_choice(weights);
     
     // Handle choice:
