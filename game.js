@@ -20,7 +20,7 @@ class Tile {
 
 // weights is a dict from choices to their weights.
 function weighted_choice(weights) {
-  let sum = function(total, num) {return total + num};
+  function sum(total, num) {return total + num};
   let total_weight = Object.values(weights).reduce(sum);
   let random = Math.random() * total_weight;
   for (let [choice, weight] of Object.entries(weights)) {
@@ -35,7 +35,7 @@ class Game {
     /* Internal representation of display grid: 
      * 2D row-order-array of tiles, which have*
      * .pos (x, y) and .key properties. */
-    this.grid = new Array();
+    this.grid = [];
     this.width = width;
     
     let display = document.createElement('table');
@@ -48,7 +48,7 @@ class Game {
         let cell        = d_row.insertCell();
         cell.id         = 't' + x + ',' + y;
         cell.className  = 'tile';
-        cell.innerHTML  = '';
+        cell.innerHTML  = 'o';
         row.push(new Tile(new Pos(x, y), cell));
       }
       this.grid.push(row);
@@ -79,27 +79,25 @@ class Game {
     // Re-shuffle all tiles:
     for (let row of this.grid) {
       for (let tile of row) {
-        this.shuffle(tile.pos);
+        this.shuffle(tile);
       }
     }
   }
   
-  shuffle(pos) {
+  shuffle(tile) {
     // Get all neighboring tiles in 5x5 area:
-    let lb = Math.max(0, pos.y-2);
-    let ub = Math.min(this.width, pos.y+3);
+    let lb = Math.max(0, tile.pos.y-2);
+    let ub = Math.min(this.width, tile.pos.y+3);
     let rows = this.grid.slice(lb, ub);
-    lb = Math.max(0, pos.x-2);
-    ub = Math.min(this.width, pos.x+3);
+    lb = Math.max(0, tile.pos.x-2);
+    ub = Math.min(this.width, tile.pos.x+3);
     rows = rows.map(function(row){
       return row.slice(lb, ub);
     });
     let neighbors = [].concat(...rows);
-    //document.write(neighbors);
     neighbors = neighbors.filter(function(tile){
-      return !this.isCharacter(tile);
-    }); // This does not work
-    //document.write(neighbors);
+      return tile.key in this.language;
+    }, this);
     
     // Filter all keys for those that
     // won't cause movement ambiguities:
@@ -109,35 +107,32 @@ class Game {
       if (!neighbors.some(function(nb){
         return l[nb.key].inside(l[opt]) || l[opt].inside(l[nb.key]);
       })) {
-        valid.push(opt);
+        valid.push(opt.key);
       }
     }
     
     // Initialize weights for valid keys and choose one:
-    let lowest = Math.min(...valid.map(function(key){
-      return this.populations[key];
-    }));
     weights = {};
-    for (let key of valid) {
-      weights[key] = Math.pow(4, lowest-this.populations[key]);
-    }
+    for (let key of valid) weights[key] = this.populations[key];
+    let lowest = Math.min(...Object.values(weights));
+    for (let key of valid) Math.pow(4, lowest-weights[key]);
     let choice = weighted_choice(weights);
     
     // Handle choice:
     this.populations[choice]++;
-    this.tileAtPos(pos) = choice;
+    tile.key = choice;
   }
   
   tileAtPos(pos) {
     return this.grid[pos.y][pos.x];
   }
   isCharacter(tile) {
-    return !Object.keys(this.language).includes(tile.key);
+    return !tile.key in this.language;
   }
   
-  get score()  return parseInt(this.score_.innerHTML );
-  get losses() return parseInt(this.losses_.innerHTML);
-  set score(val)  this.score_.innerHTML  = val;
-  set losses(val) this.losses_.innerHTML = val;
+  get score()  {return parseInt(this.score_.innerHTML );}
+  get losses() {return parseInt(this.losses_.innerHTML);}
+  set score(val)  {this.score_.innerHTML  = val;}
+  set losses(val) {this.losses_.innerHTML = val;}
 }
 
