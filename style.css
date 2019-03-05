@@ -23,5 +23,26 @@
     color:              #aebde2;
 }
 .target {
-    background:         #5cc679;
+    background-color:   #5cc679;
+    color:              black;
+}
+.player {
+    background-color:   #2fc2e0;
+    color:              black;
+}
+.trail {
+    background-color:   #3f7ba3;
+    color:              #182028;
+}
+.chaser {
+    background-color:   #ff75ce;
+    color:              black;
+}
+.nommer {
+    background-color:   #2aa8f7;
+    color:              black;
+}
+.runner {
+    background-color:   #ffdb3f;
+    color:              black;
 }

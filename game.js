@@ -4,12 +4,18 @@ class Pos {
     this.y = y;
   }
   
+  // Basic arithmetic functions:
   add(other) {
     return new Pos(this.x+other.x, this.y+other.y);
+  }
+  sub(other) {
+    return new Pos(this.x - other.x, this.y - other.y);
   }
   abs() {
     return new Pos(Math.abs(this.x), Math.abs(this.y));
   }
+  
+  // Distance functions:
   norm() {
     return Math.sqrt()
   }
@@ -22,16 +28,33 @@ class Pos {
     return abs.x + abs.y;
   }
   
+  // Bounds checking and adjustment:
+  inBounds(bound) {
+    let xInside = this.x >= 0 && this.x < bound;
+    let xInside = this.y >= 0 && this.y < bound;
+    return xInside && yInside;
+  }
+  trunc(radius) {
+    let x = this.x;
+    if (x < -radius) x = -radius;
+    else if (x > radius) x = radius;
+    
+    let y = this.y;
+    if (y < -radius) y = -radius;
+    else if (y > radius) y = radius;
+    
+    return new Pos(x, y);
+  }
+  
   // Please only call on other Pos instances.
   equals(other) {
     return this.x == other.x && this.y == other.y;
   }
   
-  // Static methods:
   // Bounds are exclusive:
-  static rand(xBound, yBound) {
-    let x = Math.floor(Math.random() * xBound);
-    let y = Math.floor(Math.random() * yBound);
+  static rand(bound) {
+    let x = Math.floor(Math.random() * bound);
+    let y = Math.floor(Math.random() * bound);
     return new Pos(x, y);
   }
 }
@@ -49,7 +72,7 @@ class Tile {
 }
 
 // weights is a dict from choices to their weights.
-function weighted_choice(weights) {
+function weightedChoice(weights) {
   function sum(total, num) {return total + num;}
   let total_weight = Object.values(weights).reduce(sum);
   let random = Math.random() * total_weight;
@@ -139,23 +162,14 @@ class Game {
     this.spawnTargets();
   }
   
-  // 
+  /* Shuffles the key in the tile at pos.
+   * Automatically increments the new key's
+   * population record, but decrementing the 
+   * previous key's population record is 
+   * expected to be done externally.
+   */
   shuffle(pos) {
-    // Get all neighboring tiles in 5x5 area:
-    let lb = Math.max(0,          pos.y - 2);
-    let ub = Math.min(this.width, pos.y + 3);
-    let rows = this.grid.slice(lb, ub);
-        lb = Math.max(0,          pos.x - 2);
-        ub = Math.min(this.width, pos.x + 3);
-      rows = rows.map(function(row){
-      return row.slice(lb, ub);
-    });
-    
-    // Filter out tiles that are characters:
-    let neighbors = [].concat(...rows);
-    neighbors = neighbors.filter(function(nbTile){
-      return nbTile.key in this.language;
-    }, this);
+    let neighbors = this.adjacent(pos, 2);
     
     // Filter all keys for those that
     // won't cause movement ambiguities:
@@ -175,14 +189,15 @@ class Game {
     for (let key of valid) { weights[key] = this.populations[key]; }
     let lowest = Math.min(...Object.values(weights));
     for (let key of valid) { weights[key] = Math.pow(4, lowest-weights[key]); }
-    let choice = weighted_choice(weights);
+    let choice = weightedChoice(weights);
     
     // Handle choice:
     this.populations[choice]++;
     this.tileAt(pos).key = choice;
   }
   
-  // 
+  /* Highlights an existing tile as a target:
+   */
   spawnTargets() {
     while(this.targets.length < this.numTargets) {
       var destPos  = Pos.rand(this.width, this.width);
@@ -200,6 +215,82 @@ class Game {
       
       this.targets.push(destPos);
       this.tileAt(destPos).coloring = 'target';
+    }
+  }
+  
+  /* Returns a collection of tiles in 
+   * the 3x3 area centered at pos, all
+   * satisfying the condition that the
+   * tiles do not contain characters:
+   */
+  adjacent(pos, radius) {
+    // Get all neighboring tiles in 5x5 area:
+    let lb    = Math.max(0,          pos.y - radius);
+    let ub    = Math.min(this.width, pos.y + radius + 1);
+    let rows  = this.grid.slice(lb, ub);
+    lb        = Math.max(0,          pos.x - radius);
+    ub        = Math.min(this.width, pos.x + radius + 1);
+    rows      = rows.map(function(row){ return row.slice(lb, ub); });
+    
+    // Filter out tiles that are characters:
+    let neighbors = [].concat(...rows);
+    return neighbors.filter(function(nbTile){
+      return nbTile.key in this.language;
+    }, this);
+  }
+  
+  // All enemy moves need to pass through this function:
+  enemyDiffTrunc(origin, dest) {
+    if (dest.equals(origin)) { return new Pos(0, 0); }
+    let diff = dest.sub(origin);
+    let abs = diff.abs();
+    
+    let axisPercent = abs(abs.x - abs.y) / (abs.x + abs.y);
+    diff = dest.sub(origin);
+    if (weightedChoice({
+      true: axisPercent,
+      false: 1 - axisPercent,})) {
+      if (abs.x > abs.y) {
+        diff.y = 0;
+      } else {
+        diff.x = 0;
+      }
+    }
+    // Return the truncated step:
+    return diff.trunc(1);
+  }
+  /* Returns a destination closer to the given
+   * final destination, truncated down to a one-
+   * tile distance from the origin.
+   *
+   * Assumes the character at origin has already
+   * been temporarily removed.
+   */
+  enemyDest(origin, dest) {
+    let diff = this.enemyDiffTrunc(origin, target);
+    let desired = origin.add(diff);
+    function closeness(altTile) {
+      return origin.add(diff.mul(2)).sub(altTile.pos).linearNorm();
+    }
+    
+    if (!desired.inBounds(this.width) ||
+      this.isCharacter(this.tileAt(desired))) {
+      // Choose one of the two best alternatives:
+      let alts = this.adjacent(origin, 1);
+      alts.push(this.tileAt(origin));
+      alts.sort(function(tileA, tileB){
+        return closeness(tileA) - closeness(tileB);
+      });
+      
+      // Generate weights:
+      weights = {};
+      for (let altTile of alts) {
+        weights[altTile.pos] = Math.pow(4, closeness(altTile));
+      }
+      // Return a weighted choice:
+      return weightedChoice(weights);
+    } else {
+      return desired;
     }
   }
   
@@ -234,9 +325,10 @@ class Game {
       for (let i = 0; i < this.targets.length; i++) {
         // If a hungry character landed on a target:
         if (dest.equals(this.targets[i])) {
-          this.targets.splice(i);
           if (character == 'player') { this.score++;  }
           else                       { this.losses++; }
+          // Remove this Pos from the targets list:
+          this.targets.splice(i);
           this.spawnTargets();
           break;
         }
