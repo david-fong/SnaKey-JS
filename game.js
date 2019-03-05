@@ -149,6 +149,10 @@ class Game {
     this.targets = [];
     this.trail   = [];
     this.moveStr = '';
+    let date = new Date();
+    this.startTime = date.getSeconds();
+    this.timeDeltas = [];
+    this.heat = 0;
     
     // Re-shuffle all tiles:
     for (let row of this.grid)
@@ -160,15 +164,14 @@ class Game {
       for (let x = 0; x < this.width; x++)
         this.shuffle(new Pos(x, y));
     
-    this.spawnCharacters();
-    
-    // TODO: startTime, timeDeltas, heat:
-    
-    
     // After spawing characters, spawn targets:
+    this.spawnCharacters();
     this.spawnTargets();
+    
+    
   }
   
+  // Only used as a helper method in restart().
   spawnCharacters() {
     // Spawn all characters by moving
     // them onto their start positions:
@@ -182,17 +185,15 @@ class Game {
     
     // Spawn enemies:
     let lower = 0, upper = this.width - 1;
-    let enemySpawns = [
+    let slots = [
       new Pos(lower, lower), new Pos(upper, lower),
       new Pos(lower, upper), new Pos(upper, upper),
     ];
-    let enemies = ['chaser', 'nommer', 'runner'];
-    for (let enemy of enemies) {
-      let i = Math.floor(Math.random() * enemies.length);
-      this.moveCharOnto(enemy, enemySpawns[i]);
-      enemySpawns.splice(i, 1);
+    for (let enemy of ['chaser', 'nommer', 'runner']) {
+      let i = Math.floor(Math.random() * slots.length);
+      this.moveCharOnto(enemy, slots[i]);
+      slots.splice(i, 1);
     }
-    
   }
   
   /* Shuffles the key in the tile at pos.
@@ -251,10 +252,10 @@ class Game {
     }
   }
   
-  /* Returns a collection of tiles in 
-   * the 3x3 area centered at pos, all
-   * satisfying the condition that the
-   * tiles do not contain characters:
+  /* Returns a collection of tiles in the 
+   * (2*radius + 1)^2 area centered at pos,
+   * all satisfying the condition that they
+   * do not contain the player or an enemy:
    */
   adjacent(pos, radius) {
     // Get all neighboring tiles in 5x5 area:
@@ -275,8 +276,50 @@ class Game {
   /*
    */
   movePlayer(key) {
+    // If the player wants to backtrack:
     if (key == ' ') {
-      ;
+      // Fail if the trail is empty or choked by an enemy:
+      if (this.trail.length == 0 || 
+          this.tileAt(this.trail[this.trail.length-1])) {
+        return;
+      }
+      this.moveCharOffOf('player');
+      this.moveCharOnto('player', this.trail.pop(), true);
+      return;
+    }
+    
+    // If the player didn't want to backtrack:
+    this.moveStr += key;
+    let adj = this.adjacent(this.player, 1);
+    let destTiles = adj.filter(function(adjTile){
+      let typingKey = this.language[adjTile.key];
+      return this.moveStr.endsWith(typingKey)}, this);
+      
+    // Handle if the player typed a sequence
+    // corresponding to an adjacent tile:
+    if (destTiles.length == 1) {
+      this.moveStr = '';
+      let date = new Date();
+      this.timeDeltas.push(date.getSeconds() - this.startTime);
+      this.startTime = date.getSeconds();
+      
+      this.trail.push(this.player);
+      this.moveCharOffOf('player');
+      this.moveCharOnto('player', destTiles[0], true);
+    }
+  }
+  
+  /* Used to moderate the player's trail length.
+   * Should be called whenever a target is consumed,
+   * or whenever the player moves.
+   */
+  trimTrail() {
+    if (this.trail.length == 0) { return; }
+    
+    let net = this.score = this.losses;
+    if (net < 0 || this.trail.length > Math.pos(net, 3/7)) {
+      // The last element is the closest to the head.
+      this.trail.shift();
     }
   }
   
@@ -357,6 +400,8 @@ class Game {
   }
   
   /* Assumes that dest does not contain a character.
+   * Handles book-keeping tasks such as spawning new
+   * targets, and trimming the player's trail.
    */
   moveCharOnto(character, dest, hungry) {
     this[character] = dest;
@@ -366,17 +411,17 @@ class Game {
     tile.key = faces[character];
     
     // Check if a hungry character landed on a target:
-    if (hungry) {
-      for (let i = 0; i < this.targets.length; i++) {
-        // If a hungry character landed on a target:
-        if (dest.equals(this.targets[i])) {
-          if (character == 'player') { this.score++;  }
-          else                       { this.losses++; }
-          // Remove this Pos from the targets list:
-          this.targets.splice(i);
-          this.spawnTargets();
-          break;
-        }
+    if (!hungry) { return; }
+    for (let i = 0; i < this.targets.length; i++) {
+      // If a hungry character landed on a target:
+      if (dest.equals(this.targets[i])) {
+        if (character == 'player') { this.score++;  }
+        else                       { this.losses++; }
+        // Remove this Pos from the targets list:
+        this.targets.splice(i, 1);
+        this.trimTrail();
+        this.spawnTargets();
+        break;
       }
     }
   }
