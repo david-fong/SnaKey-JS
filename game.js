@@ -124,8 +124,12 @@ class Game {
     
     this.lang_choice = 'english_lower';
     this.numTargets  = this.width * this.width / targetThinness;
-    // TODO: set all character fields / positions.
     
+    // TODO: set all character fields / positions.
+    this.player = new Pos(0, 0);
+    this.chaser = new Pos(0, 0);
+    this.nommer = new Pos(0, 0);
+    this.runner = new Pos(0, 0);
     
     this.restart();
   }
@@ -148,18 +152,47 @@ class Game {
     
     // Re-shuffle all tiles:
     for (let row of this.grid)
-      for (let tile of row)
+      for (let tile of row) {
         tile.key = '_';
+        tile.coloring = 'tile';
+      }
     for (let y = 0; y < this.width; y++)
       for (let x = 0; x < this.width; x++)
         this.shuffle(new Pos(x, y));
     
-    /* TODO; spawn all characters by moving
-     * them onto their start positions. */
+    this.spawnCharacters();
+    
+    // TODO: startTime, timeDeltas, heat:
     
     
     // After spawing characters, spawn targets:
     this.spawnTargets();
+  }
+  
+  spawnCharacters() {
+    // Spawn all characters by moving
+    // them onto their start positions:
+    for (let character in faces) {
+      this.moveCharOffOf(character);
+    }
+    
+    // Spawn the player:
+    let mid = Math.floor(this.width / 2);
+    this.moveCharOnto('player', new Pos(mid, mid));
+    
+    // Spawn enemies:
+    let lower = 0, upper = this.width - 1;
+    let enemySpawns = [
+      new Pos(lower, lower), new Pos(upper, lower),
+      new Pos(lower, upper), new Pos(upper, upper),
+    ];
+    let enemies = ['chaser', 'nommer', 'runner'];
+    for (let enemy of enemies) {
+      let i = Math.floor(Math.random() * enemies.length);
+      this.moveCharOnto(enemy, enemySpawns[i]);
+      enemySpawns.splice(i, 1);
+    }
+    
   }
   
   /* Shuffles the key in the tile at pos.
@@ -239,6 +272,14 @@ class Game {
     }, this);
   }
   
+  /*
+   */
+  movePlayer(key) {
+    if (key == ' ') {
+      ;
+    }
+  }
+  
   // All enemy moves need to pass through this function:
   enemyDiffTrunc(origin, dest) {
     if (dest.equals(origin)) { return new Pos(0, 0); }
@@ -295,11 +336,11 @@ class Game {
   }
   
   // 
-  moveCharOffOf(character, origin, notHungry) {
-    let tile = this.tileAt(origin);
-    this.populations[tile.key]--;
+  moveCharOffOf(character, notHungry) {
+    let pos = this[character];
+    let tile = this.tileAt(pos);
     tile.key = '_';
-    this.shuffle(tile);
+    this.shuffle(pos);
     
     // Handle coloring:
     if (character == 'player' || 
@@ -315,10 +356,14 @@ class Game {
     }
   }
   
-  // 
+  /* Assumes that dest does not contain a character.
+   */
   moveCharOnto(character, dest, hungry) {
-    this[charName] = dest;
-    this.tileAt(dest).coloring = charName;
+    this[character] = dest;
+    let tile = this.tileAt(dest);
+    this.populations[tile.key]--;
+    tile.coloring = character;
+    tile.key = faces[character];
     
     // Check if a hungry character landed on a target:
     if (hungry) {
