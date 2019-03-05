@@ -1,5 +1,5 @@
 class Pos {
-  constructor(x, y) {
+  constructor(x=0, y=0) {
     this.x = x;
     this.y = y;
   }
@@ -34,7 +34,7 @@ class Pos {
     let xInside = this.y >= 0 && this.y < bound;
     return xInside && yInside;
   }
-  trunc(radius) {
+  trunc(radius=1) {
     let x = this.x;
     if (x < -radius) x = -radius;
     else if (x > radius) x = radius;
@@ -73,7 +73,7 @@ class Tile {
 
 // weights is a dict from choices to their weights.
 function weightedChoice(weights) {
-  function sum(total, num) {return total + num;}
+  let sum = (total, num) => total + num;
   let total_weight = Object.values(weights).reduce(sum);
   let random = Math.random() * total_weight;
   for (let [choice, weight] of Object.entries(weights)) {
@@ -94,12 +94,14 @@ var faces = {
 };
 
 class Game {
-  constructor(width) {
+  constructor(width=20) {
     /* Internal representation of display grid: 
      * 2D row-order-array of tiles, which have*
      * .pos (x, y) and .key properties. */
     this.grid  = [];
     this.width = width;
+    this.lang_choice = 'english_lower';
+    this.numTargets  = this.width * this.width / targetThinness;
     
     // Initialize Table display:
     let display = document.createElement('table');
@@ -122,14 +124,10 @@ class Game {
     document.body.appendChild(this.score_);
     document.body.appendChild(this.losses_);
     
-    this.lang_choice = 'english_lower';
-    this.numTargets  = this.width * this.width / targetThinness;
-    
     // TODO: set all character fields / positions.
-    this.player = new Pos(0, 0);
-    this.chaser = new Pos(0, 0);
-    this.nommer = new Pos(0, 0);
-    this.runner = new Pos(0, 0);
+    for (let character in faces) {
+      this[character] = new Pos();
+    }
     
     this.restart();
   }
@@ -168,7 +166,7 @@ class Game {
     this.spawnCharacters();
     this.spawnTargets();
     
-    
+    this.unPause();
   }
   
   // Only used as a helper method in restart().
@@ -210,10 +208,10 @@ class Game {
     let valid = [];
     let l = this.language;
     for (let opt in this.language) {
-      if (!neighbors.some(function(nbTile){
+      if (!neighbors.some(nbTile => {
         let nb = l[nbTile.key];
         return nb.includes(l[opt]) || l[opt].includes(nb);
-      }, this)) {
+      })) {
         valid.push(opt);
       }
     }
@@ -239,9 +237,8 @@ class Game {
       
       // Check if the dest is valid:
       // (ie. it is not a character and it is not already a target:
-      let alreadyTarget = this.targets.some(function(targetPos){
-        destPos.equals(targetPos);
-      }, this);
+      let alreadyTarget = this.targets.some(targetPos =>
+        destPos.equals(targetPos));
       while(this.isCharacter(destTile) || alreadyTarget) {
         var destPos  = Pos.rand(this.width, this.width);
         var destTile = this.tileAt(destPos);
@@ -257,25 +254,25 @@ class Game {
    * all satisfying the condition that they
    * do not contain the player or an enemy:
    */
-  adjacent(pos, radius) {
+  adjacent(pos, radius=1) {
     // Get all neighboring tiles in 5x5 area:
     let lb    = Math.max(0,          pos.y - radius);
     let ub    = Math.min(this.width, pos.y + radius + 1);
     let rows  = this.grid.slice(lb, ub);
     lb        = Math.max(0,          pos.x - radius);
     ub        = Math.min(this.width, pos.x + radius + 1);
-    rows      = rows.map(function(row){ return row.slice(lb, ub); });
+    rows      = rows.map(row => row.slice(lb, ub));
     
     // Filter out tiles that are characters:
     let neighbors = [].concat(...rows);
-    return neighbors.filter(function(nbTile){
-      return nbTile.key in this.language;
-    }, this);
+    return neighbors.filter(nbTile => nbTile.key in this.language, this); // TODO: check 'this'
   }
   
   /*
    */
-  movePlayer(key) {
+  movePlayer(event) {
+    let key = event.key;
+    
     // If the player wants to backtrack:
     if (key == ' ') {
       // Fail if the trail is empty or choked by an enemy:
@@ -290,7 +287,7 @@ class Game {
     
     // If the player didn't want to backtrack:
     this.moveStr += key;
-    let adj = this.adjacent(this.player, 1);
+    let adj = this.adjacent(this.player);
     let destTiles = adj.filter(function(adjTile){
       let typingKey = this.language[adjTile.key];
       return this.moveStr.endsWith(typingKey)}, this);
@@ -303,9 +300,9 @@ class Game {
       this.timeDeltas.push(date.getSeconds() - this.startTime);
       this.startTime = date.getSeconds();
       
-      this.trail.push(this.player);
       this.moveCharOffOf('player');
-      this.moveCharOnto('player', destTiles[0], true);
+      this.trail.push(this.player);
+      this.moveCharOnto('player', destTiles[0].pos, true);
     }
   }
   
@@ -316,10 +313,14 @@ class Game {
   trimTrail() {
     if (this.trail.length == 0) { return; }
     
+    console.log('hi_');
     let net = this.score = this.losses;
-    if (net < 0 || this.trail.length > Math.pos(net, 3/7)) {
+    if (net < 0 || this.trail.length > Math.pow(net, 3/7)) {
       // The last element is the closest to the head.
-      this.trail.shift();
+      let popTile = this.tileAt(this.trail.shift());
+      if (this.isCharacter(popTile)) {
+        popped.coloring = 'tile';
+      }
     }
   }
   
@@ -353,23 +354,21 @@ class Game {
   enemyDest(origin, dest) {
     let diff = this.enemyDiffTrunc(origin, target);
     let desired = origin.add(diff);
-    function closeness(altTile) {
+    function pref(altTile) {
       return origin.add(diff.mul(2)).sub(altTile.pos).linearNorm();
     }
     
     if (!desired.inBounds(this.width) ||
       this.isCharacter(this.tileAt(desired))) {
       // Choose one of the two best alternatives:
-      let alts = this.adjacent(origin, 1);
+      let alts = this.adjacent(origin);
       alts.push(this.tileAt(origin));
-      alts.sort(function(tileA, tileB){
-        return closeness(tileA) - closeness(tileB);
-      });
+      alts.sort((tA, tB) => pref(tA) - pref(tB));
       
       // Generate weights:
       weights = {};
       for (let altTile of alts) {
-        weights[altTile.pos] = Math.pow(4, closeness(altTile));
+        weights[altTile.pos] = Math.pow(4, pref(altTile));
       }
       // Return a weighted choice:
       return weightedChoice(weights);
@@ -387,12 +386,10 @@ class Game {
     
     // Handle coloring:
     if (character == 'player' || 
-        this.trail.some(function(tlPos){
-          pos.equals(tlPos); }, this)) {
+        this.trail.some(tlPos => pos.equals(tlPos))) {
       tile.coloring = 'trail';
     } else if (notHungry && 
-        this.targets.some(function(tgPos){
-          pos.equals(tgPos); }, this)) {
+        this.targets.some(tgPos => pos.equals(tgPos))) {
       tile.coloring = 'target';
     } else {
       tile.coloring = 'tile';
@@ -403,7 +400,7 @@ class Game {
    * Handles book-keeping tasks such as spawning new
    * targets, and trimming the player's trail.
    */
-  moveCharOnto(character, dest, hungry) {
+  moveCharOnto(character, dest, hungry=false) {
     this[character] = dest;
     let tile = this.tileAt(dest);
     this.populations[tile.key]--;
@@ -424,6 +421,16 @@ class Game {
         break;
       }
     }
+  }
+  
+  pause() {
+    document.body.removeEventListener(
+      'keydown', function(){that.movePlayer(event);}, false);
+  }
+  unPause() {
+    let that = this;
+    document.body.addEventListener(
+      'keydown', function(){that.movePlayer(event);}, false);
   }
   
   tileAt(pos) {
