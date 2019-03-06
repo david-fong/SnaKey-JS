@@ -133,16 +133,17 @@ class Game {
     let lBar = document.createElement('table');
     lBar.className = 'lBar';
     let row = lBar.insertRow();
-    let that = this;
     
     // Buttons:
     for (let bName of ['restart', 'pause',]) {
       let ppty = document.createElement('button');
       this[bName + 'Button'] = ppty;
       ppty.innerHTML = bName;
-      ppty.addEventListener('click', function(){that[bName]()});
       row.insertCell().appendChild(ppty);
     }
+    let that = this;
+    this.restartButton.onclick = function(){that.restart()};
+    this.pauseButton.onclick   = function(){that.togglePause()};
     
     // Score displays:
     this.score_  = row.insertCell();
@@ -191,7 +192,7 @@ class Game {
     
     // Start the characters moving:
     this.pauseButton.disable = false;
-    this.unPause();
+    this.togglePause('unpause');
   }
   
   // Only used as a helper method in restart().
@@ -355,13 +356,23 @@ class Game {
   moveChaser() {
     this.moveCharOffOf(this.chaser, true);
     let dest = this.player;
+    
     // TODO: Miss logic goes here:
-    if ((this.chaser.sub(this.player)).squareNorm() == 1) {
-      // TODO: Game over condition:
-      this.gameOver();
+    let miss = false;
+    if (miss) {
+      dest = this.trail[this.trail.length-1];
+    } else {
+      // Handle if the chaser would land on the player:
+      if ((this.chaser.sub(this.player)).squareNorm() == 1) {
+        this.moveCharOffOf('chaser');
+        this.tileAt(this.player).coloring = 'chaser';
+        this.gameOver();
+      }
     }
     
     dest = this.enemyDest(this.chaser, dest);
+    this.moveCharOnto('chaser', dest);
+    // TODO: loop here:
   }
   
   // All enemy moves need to pass through this function:
@@ -465,37 +476,35 @@ class Game {
   /* Freezes enemies and disables player movement.
    * Toggles the pause button to unpause on next click.
    */
-  pause() {
+  togglePause(force=undefined) {
     let that = this;
-    document.body.removeEventListener(
-      'keydown', function(){that.movePlayer(event)});
+    
+    // A method is requesting to force
+    // the game to a certain state:
+    if (force == 'pause') {
+      this.pauseButton.innerHTML = 'pause';
+      this.togglePause();
+      return;
+    } else if (force == 'unpause') {
+      this.pauseButton.innerHTML = 'unpause';
+      this.togglePause();
+      return;
+    }
+    
+    // The player pressed the button:
+    if (this.pauseButton.innerHTML == 'pause') {
+      document.body.onkeydown = function(){};
+      // TODO: freeze all the enemies:
+      this.pauseButton.innerHTML = 'unpause';
+    } else {
+      document.body.onkeydown = function(){that.movePlayer(event)};
+      // TODO: unfreeze all the enemies:
+      this.pauseButton.innerHTML = 'pause';
       
-    // Toggle button behaviour:
-    let oldPb = this.pauseButton;
-    let newPb = oldPb.cloneNode();
-    oldPb.parentNode.replaceChild(newPb, oldPb);
-    this.pauseButton = newPb;
-    newPb.innerHTML = 'unpause';
-    newPb.addEventListener('click', function(){that.unPause()});
-  }
-  /* Unfreezes enemies and re-enables player movement.
-   * Toggles the pause button to pause on next click.
-   */
-  unPause() {
-    let that = this;
-    document.body.addEventListener(
-      'keydown', function(){that.movePlayer(event)});
-      
-    // Toggle button behaviour:
-    let oldPb = this.pauseButton;
-    let newPb = oldPb.cloneNode();
-    oldPb.parentNode.replaceChild(newPb, oldPb);
-    this.pauseButton = newPb;
-    newPb.innerHTML = 'pause';
-    newPb.addEventListener('click', function(){that.pause()});
+    }
   }
   gameOver() {
-    this.pause();
+    this.togglePause('pause');
     this.pauseButton.disable = true;
   }
   
