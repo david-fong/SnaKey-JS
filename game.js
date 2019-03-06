@@ -6,7 +6,7 @@ class Pos {
   
   // Basic arithmetic functions:
   add(other) {
-    return new Pos(this.x+other.x, this.y+other.y);
+    return new Pos(this.x + other.x, this.y + other.y);
   }
   sub(other) {
     return new Pos(this.x - other.x, this.y - other.y);
@@ -31,7 +31,7 @@ class Pos {
   // Bounds checking and adjustment:
   inBounds(bound) {
     let xInside = this.x >= 0 && this.x < bound;
-    let xInside = this.y >= 0 && this.y < bound;
+    let yInside = this.y >= 0 && this.y < bound;
     return xInside && yInside;
   }
   trunc(radius=1) {
@@ -141,9 +141,8 @@ class Game {
       ppty.innerHTML = bName;
       row.insertCell().appendChild(ppty);
     }
-    let that = this;
-    this.restartButton.onclick = function(){that.restart()};
-    this.pauseButton.onclick   = function(){that.togglePause()};
+    this.restartButton.onclick = () => this.restart();
+    this.pauseButton.onclick   = () => this.togglePause();
     
     // Score displays:
     this.score_  = row.insertCell();
@@ -157,7 +156,6 @@ class Game {
    * if disabled by a game-over.
    */
   restart() {
-    console.log('restart');
     // Reset all display-key populations:
     this.language = languages[this.lang_choice];
     this.populations = {};
@@ -192,6 +190,7 @@ class Game {
     
     // Start the characters moving:
     this.pauseButton.disable = false;
+    this.togglePause('pause');
     this.togglePause('unpause');
   }
   
@@ -340,12 +339,12 @@ class Game {
   trimTrail() {
     if (this.trail.length == 0) { return; }
     
-    let net = (this.score) - this.losses;
-    
+    let net = (this.score) - 0.9 * this.losses;
     if (net < 0 || this.trail.length > Math.pow(net, 3/7)) {
       // The last element is the closest to the head.
-      let popTile = this.tileAt(this.trail.shift());
-      if (!this.isCharacter(popTile)) {
+      let popTile  = this.tileAt(this.trail.shift());
+      let isTarget = this.targets.some(tgPos => popTile.pos.equals(tgPos));
+      if (!this.isCharacter(popTile) && !isTarget) {
         popTile.coloring = 'tile';
       }
     }
@@ -354,7 +353,7 @@ class Game {
   /* 
    */
   moveChaser() {
-    this.moveCharOffOf(this.chaser, true);
+    this.moveCharOffOf('chaser', true);
     let dest = this.player;
     
     // TODO: Miss logic goes here:
@@ -372,23 +371,26 @@ class Game {
     
     dest = this.enemyDest(this.chaser, dest);
     this.moveCharOnto('chaser', dest);
-    // TODO: loop here:
+    let loop = this.moveChaser.bind(this);
+    this.chaserCancel = setTimeout(loop, 800);
   }
   
   // All enemy moves need to pass through this function:
   enemyDiffTrunc(origin, dest) {
-    if (dest.equals(origin)) { return new Pos(0, 0); }
     let diff = dest.sub(origin);
+    // If there's no diagonal part, truncate and return:
+    if (diff.x == 0 || diff.y == 0) { return diff.trunc(1); }
     let abs = diff.abs();
     
-    let axisPercent = abs(abs.x - abs.y) / (abs.x + abs.y);
-    diff = dest.sub(origin);
+    // Decide whether to keep the diagonal:
+    // When axisPercent ~ 1, diagonal component is small.
+    let axisPercent = Math.abs(abs.x-abs.y) / (abs.x+abs.y);
     if (weightedChoice({
-      true: axisPercent,
-      false: 1 - axisPercent,})) {
+        true:      axisPercent,
+        false: 1 - axisPercent,})) {
       if (abs.x > abs.y) {
         diff.y = 0;
-      } else {
+      } else if (abs.x < abs.y) {
         diff.x = 0;
       }
     }
@@ -403,12 +405,13 @@ class Game {
    * been temporarily removed.
    */
   enemyDest(origin, dest) {
-    let diff = this.enemyDiffTrunc(origin, target);
+    let diff = this.enemyDiffTrunc(origin, dest);
     let desired = origin.add(diff);
     function pref(altTile) {
       return origin.add(diff.mul(2)).sub(altTile.pos).linearNorm();
     }
     
+    // Handle if the desired step-destination has a conflict:
     if (!desired.inBounds(this.width) ||
       this.isCharacter(this.tileAt(desired))) {
       // Choose one of the two best alternatives:
@@ -423,6 +426,7 @@ class Game {
       }
       // Return a weighted choice:
       return weightedChoice(weights);
+      
     } else {
       return desired;
     }
@@ -477,8 +481,6 @@ class Game {
    * Toggles the pause button to unpause on next click.
    */
   togglePause(force=undefined) {
-    let that = this;
-    
     // A method is requesting to force
     // the game to a certain state:
     if (force == 'pause') {
@@ -491,14 +493,19 @@ class Game {
       return;
     }
     
-    // The player pressed the button:
+    // The player pressed the pause button:
+    let that = this;
     if (this.pauseButton.innerHTML == 'pause') {
-      document.body.onkeydown = function(){};
+      document.body.onkeydown = () => {};
       // TODO: freeze all the enemies:
+      clearTimeout(that.chaserCancel);
       this.pauseButton.innerHTML = 'unpause';
+      
+    // The user pressed the un-pause button:
     } else {
-      document.body.onkeydown = function(){that.movePlayer(event)};
+      document.body.onkeydown = () => this.movePlayer(event);
       // TODO: unfreeze all the enemies:
+      this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1100);
       this.pauseButton.innerHTML = 'pause';
       
     }
