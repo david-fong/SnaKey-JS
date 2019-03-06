@@ -1,24 +1,27 @@
-/* Coloring for the grid */
-.grid {
-    background-color:   #3f5e77;
+table {
     border-spacing:     2px;
     empty-cells:        show;
 }
-
-/* Generic formatting for any tile in the grid */
-.grid td {
+td {
     height:             1.2em;
-    width:              1.1em;
     text-align:         center;
+    overflow:           hidden;
     vertical-align:     middle;
-    
     border-collapse:    collapse;
-    
     font:               system 8pt bold;
 }
+.grid {
+    cursor:             arrow;
+    background-color:   #3f5e77;
+}
+/* Generic formatting for any tile in the grid */
+.grid td { width:   1.1em;   
+           cursor:  arrow;   }
+.lBar    { cursor:  pointer; }
+.lBar td { width:   4.3em;   }
 
 /* Coloring for tiles containing no game elements. */
-.tile {
+.tile   {
     background-color:   #2e3b48;
     color:              #aebde2;
 }
@@ -30,7 +33,7 @@
     background-color:   #2fc2e0;
     color:              black;
 }
-.trail {
+.trail  {
     background-color:   #3f7ba3;
     color:              #182028;
 }

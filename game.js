@@ -104,25 +104,21 @@ class Game {
     this.numTargets  = this.width * this.width / targetThinness;
     
     // Initialize Table display:
-    let display = document.createElement('table');
-    display.className = 'grid';
+    let dGrid = document.createElement('table');
+    dGrid.className = 'grid';
     for (let y = 0; y < width; y++) {
       let row = [];
-      let d_row = display.insertRow();
+      let dRow = dGrid.insertRow();
       for (let x = 0; x < width; x++) {
-        let cell        = d_row.insertCell();
+        let cell        = dRow.insertCell();
         cell.id         = 't' + x + ',' + y;
         cell.className  = 'tile';
         row.push(new Tile(new Pos(x, y), cell));
       }
       this.grid.push(row);
     }
-    document.body.appendChild(display);
-    
-    this.score_  = document.createElement('p');
-    this.losses_ = document.createElement('p');
-    document.body.appendChild(this.score_);
-    document.body.appendChild(this.losses_);
+    document.body.appendChild(dGrid);
+    this.makeLowerBar();
     
     // TODO: set all character fields / positions.
     for (let character in faces) {
@@ -132,8 +128,35 @@ class Game {
     this.restart();
   }
   
-  // Shuffles entire grid and resets scores.
+  // Called only once during instance initialization.
+  makeLowerBar() {
+    let lBar = document.createElement('table');
+    lBar.className = 'lBar';
+    let row = lBar.insertRow();
+    let that = this;
+    
+    // Buttons:
+    for (let bName of ['restart', 'pause',]) {
+      let ppty = document.createElement('button');
+      this[bName + 'Button'] = ppty;
+      ppty.innerHTML = bName;
+      ppty.addEventListener('click', function(){that[bName]()});
+      row.insertCell().appendChild(ppty);
+    }
+    
+    // Score displays:
+    this.score_  = row.insertCell();
+    this.losses_ = row.insertCell();
+    
+    document.body.appendChild(lBar);
+  }
+  
+  /* Shuffles entire grid and resets scores.
+   * Automatically re-enables the pause button
+   * if disabled by a game-over.
+   */
   restart() {
+    console.log('restart');
     // Reset all display-key populations:
     this.language = languages[this.lang_choice];
     this.populations = {};
@@ -166,6 +189,8 @@ class Game {
     this.spawnCharacters();
     this.spawnTargets();
     
+    // Start the characters moving:
+    this.pauseButton.disable = false;
     this.unPause();
   }
   
@@ -203,15 +228,15 @@ class Game {
   shuffle(pos) {
     let neighbors = this.adjacent(pos, 2);
     
-    // Filter all keys for those that
+    // Filter all keys keeping those that
     // won't cause movement ambiguities:
     let valid = [];
     let l = this.language;
     for (let opt in this.language) {
-      if (!neighbors.some(nbTile => {
-        let nb = l[nbTile.key];
-        return nb.includes(l[opt]) || l[opt].includes(nb);
-      })) {
+      if (!neighbors.some(nbTile => 
+        l[nbTile.key].includes(l[opt]) ||
+        l[opt].includes(l[nbTile.key])
+      )) {
         valid.push(opt);
       }
     }
@@ -237,8 +262,7 @@ class Game {
       
       // Check if the dest is valid:
       // (ie. it is not a character and it is not already a target:
-      let alreadyTarget = this.targets.some(targetPos =>
-        destPos.equals(targetPos));
+      let alreadyTarget = this.targets.some(tgPos => destPos.equals(tgPos));
       while(this.isCharacter(destTile) || alreadyTarget) {
         var destPos  = Pos.rand(this.width, this.width);
         var destTile = this.tileAt(destPos);
@@ -268,7 +292,7 @@ class Game {
     return neighbors.filter(nbTile => nbTile.key in this.language, this); // TODO: check 'this'
   }
   
-  /*
+  /* 
    */
   movePlayer(event) {
     let key = event.key;
@@ -277,7 +301,8 @@ class Game {
     if (key == ' ') {
       // Fail if the trail is empty or choked by an enemy:
       if (this.trail.length == 0 || 
-          this.tileAt(this.trail[this.trail.length-1])) {
+          this.isCharacter(this.tileAt(
+            this.trail[this.trail.length-1]))) {
         return;
       }
       this.moveCharOffOf('player');
@@ -288,9 +313,8 @@ class Game {
     // If the player didn't want to backtrack:
     this.moveStr += key;
     let adj = this.adjacent(this.player);
-    let destTiles = adj.filter(function(adjTile){
-      let typingKey = this.language[adjTile.key];
-      return this.moveStr.endsWith(typingKey)}, this);
+    let destTiles = adj.filter(adjTile => 
+      this.moveStr.endsWith(this.language[adjTile.key]));
       
     // Handle if the player typed a sequence
     // corresponding to an adjacent tile:
@@ -301,7 +325,9 @@ class Game {
       this.startTime = date.getSeconds();
       
       this.moveCharOffOf('player');
+      this.tileAt(this.player).coloring = 'trail';
       this.trail.push(this.player);
+      this.trimTrail();
       this.moveCharOnto('player', destTiles[0].pos, true);
     }
   }
@@ -313,15 +339,29 @@ class Game {
   trimTrail() {
     if (this.trail.length == 0) { return; }
     
-    console.log('hi_');
-    let net = this.score = this.losses;
+    let net = (this.score) - this.losses;
+    
     if (net < 0 || this.trail.length > Math.pow(net, 3/7)) {
       // The last element is the closest to the head.
       let popTile = this.tileAt(this.trail.shift());
-      if (this.isCharacter(popTile)) {
-        popped.coloring = 'tile';
+      if (!this.isCharacter(popTile)) {
+        popTile.coloring = 'tile';
       }
     }
+  }
+  
+  /* 
+   */
+  moveChaser() {
+    this.moveCharOffOf(this.chaser, true);
+    let dest = this.player;
+    // TODO: Miss logic goes here:
+    if ((this.chaser.sub(this.player)).squareNorm() == 1) {
+      // TODO: Game over condition:
+      this.gameOver();
+    }
+    
+    dest = this.enemyDest(this.chaser, dest);
   }
   
   // All enemy moves need to pass through this function:
@@ -379,14 +419,13 @@ class Game {
   
   // 
   moveCharOffOf(character, notHungry) {
-    let pos = this[character];
+    let pos  = this[character];
     let tile = this.tileAt(pos);
     tile.key = '_';
     this.shuffle(pos);
     
     // Handle coloring:
-    if (character == 'player' || 
-        this.trail.some(tlPos => pos.equals(tlPos))) {
+    if (this.trail.some(tlPos => pos.equals(tlPos))) {
       tile.coloring = 'trail';
     } else if (notHungry && 
         this.targets.some(tgPos => pos.equals(tgPos))) {
@@ -412,8 +451,8 @@ class Game {
     for (let i = 0; i < this.targets.length; i++) {
       // If a hungry character landed on a target:
       if (dest.equals(this.targets[i])) {
-        if (character == 'player') { this.score++;  }
-        else                       { this.losses++; }
+        if (character == 'player') { this.score  += 1; }
+        else                       { this.losses += 1; }
         // Remove this Pos from the targets list:
         this.targets.splice(i, 1);
         this.trimTrail();
@@ -423,14 +462,41 @@ class Game {
     }
   }
   
+  /* Freezes enemies and disables player movement.
+   * Toggles the pause button to unpause on next click.
+   */
   pause() {
+    let that = this;
     document.body.removeEventListener(
-      'keydown', function(){that.movePlayer(event);}, false);
+      'keydown', function(){that.movePlayer(event)});
+      
+    // Toggle button behaviour:
+    let oldPb = this.pauseButton;
+    let newPb = oldPb.cloneNode();
+    oldPb.parentNode.replaceChild(newPb, oldPb);
+    this.pauseButton = newPb;
+    newPb.innerHTML = 'unpause';
+    newPb.addEventListener('click', function(){that.unPause()});
   }
+  /* Unfreezes enemies and re-enables player movement.
+   * Toggles the pause button to pause on next click.
+   */
   unPause() {
     let that = this;
     document.body.addEventListener(
-      'keydown', function(){that.movePlayer(event);}, false);
+      'keydown', function(){that.movePlayer(event)});
+      
+    // Toggle button behaviour:
+    let oldPb = this.pauseButton;
+    let newPb = oldPb.cloneNode();
+    oldPb.parentNode.replaceChild(newPb, oldPb);
+    this.pauseButton = newPb;
+    newPb.innerHTML = 'pause';
+    newPb.addEventListener('click', function(){that.pause()});
+  }
+  gameOver() {
+    this.pause();
+    this.pauseButton.disable = true;
   }
   
   tileAt(pos) {
