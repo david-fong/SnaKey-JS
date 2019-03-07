@@ -2,7 +2,6 @@ table {
     border-spacing:     0.13em;
     empty-cells:        show;
     text-align:         center;
-    vertical-align:     middle;
     
     text-overflow:      clip;
     white-space:        nowrap;
@@ -20,6 +19,8 @@ td {
     /* Crop text that won't fit: */
     overflow-x:         hidden;
     overflow-y:         hidden;
+    
+    border-radius:      0.25em;
 }
 
 @keyframes myPause {

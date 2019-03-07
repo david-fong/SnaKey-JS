@@ -73,11 +73,12 @@ class Tile {
   set coloring(cn) { this.cell.className = cn;   }
 }
 
-// weights is a dict from choices to their weights.
+// weights is a map from choices to their weights.
 function weightedChoice(weights) {
-  let sum = (total, num) => total + num;
+  let sum = (accumulator, another) => accumulator + another;
   let total_weight = Object.values(weights).reduce(sum);
   let random = Math.random() * total_weight;
+  
   for (let [choice, weight] of Object.entries(weights)) {
     if (random < weight) return choice;
     else random -= weight;
@@ -133,11 +134,18 @@ class Game {
     
     this.makeLowerBar();
     
-    // TODO: set all character fields / positions.
+    // Create fields for each character's position:
     for (let character in faces) {
       this[character] = new Pos();
     }
+    let pad = Math.floor(this.width / 6);
+    let lower = 0 + pad, upper = this.width - pad - 1;
+    this.corners = [
+      new Pos(lower, lower), new Pos(upper, lower),
+      new Pos(lower, upper), new Pos(upper, upper),
+    ];
     
+    // Start the game:
     this.gameIsOver = true;
     this.restart();
   }
@@ -231,11 +239,7 @@ class Game {
     this.moveCharOnto('player', new Pos(mid, mid));
     
     // Spawn enemies:
-    let lower = 0, upper = this.width - 1;
-    let slots = [
-      new Pos(lower, lower), new Pos(upper, lower),
-      new Pos(lower, upper), new Pos(upper, upper),
-    ];
+    let slots = this.corners.slice();
     for (let enemy of ['chaser', 'nommer', 'runner']) {
       let i = Math.floor(Math.random() * slots.length);
       this.moveCharOnto(enemy, slots[i]);
@@ -374,7 +378,7 @@ class Game {
     }
   }
   
-  /* 
+  /* Chaser moves in the direction of the player.
    */
   moveChaser() {
     this.moveCharOffOf('chaser', true);
@@ -399,6 +403,32 @@ class Game {
     this.chaserCancel = setTimeout(loop, 800);
   }
   
+  /* Nommer moves toward a target and avoids
+   * competition with the player for a target.
+   */
+  moveNommer() {
+    this.moveCharOffOf('nommer');
+    let targets = this.targets.slice();
+    
+    // Get all targets exluding the third which are closest to the player:
+    let prox =  (tgPos) => this.player.sub(tgPos).squareNorm();
+    targets.sort((a, b) => prox(a) - prox(b));
+    targets = targets.slice(Math.floor(targets.length / 3));
+    
+    // Now, choose the target closest to the nommer:
+    prox = (tgPos) => tgPos.sub(this.nommer).squareNorm();
+    targets.sort((a, b) => prox(a) - prox(b));
+    let dest = targets[0];
+    
+    // Decrease the player's heat stat:
+    if (this.heat - 1  >= 0) this.heat--;
+    
+    dest = this.enemyDest(this.nommer, dest);
+    this.moveCharOnto('nommer', dest, true);
+    let loop = this.moveNommer.bind(this);
+    this.nommerCancel = setTimeout(loop, 800);
+  }
+  
   // All enemy moves need to pass through this function:
   enemyDiffTrunc(origin, dest) {
     let diff = dest.sub(origin);
@@ -421,6 +451,7 @@ class Game {
     // Return the truncated step:
     return diff.trunc(1);
   }
+  
   /* Returns a destination closer to the given
    * final destination, truncated down to a one-
    * tile distance from the origin.
@@ -518,23 +549,25 @@ class Game {
     }
     
     let that = this;
+    clearTimeout(that.chaserCancel);
+    clearTimeout(that.nommerCancel);
     
     // The player pressed the pause button:
     if (this.pauseButton.innerHTML == 'pause') {
       this.pauseButton.innerHTML = 'unpause';
       document.body.onkeydown    = () => {};
       // TODO: freeze all the enemies:
-      clearTimeout(that.chaserCancel);
       
     // The user pressed the un-pause button:
     } else {
       this.pauseButton.innerHTML = 'pause';
       document.body.onkeydown = () => this.movePlayer(event);
       // TODO: unfreeze all the enemies:
-      clearTimeout(that.chaserCancel);
-      this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1100);
+      this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);
+      this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
     }
   }
+  
   gameOver() {
     this.gameIsOver = true;
     this.pauseAnim();
@@ -542,12 +575,8 @@ class Game {
     this.pauseButton.disabled = true;
   }
   
-  tileAt(pos) {
-    return this.grid[pos.y][pos.x];
-  }
-  isCharacter(tile) {
-    return !tile.key in this.language;
-  }
+  tileAt(pos) { return this.grid[pos.y][pos.x]; }
+  isCharacter(tile) { return !tile.key in this.language; }
   
   get score()  {return parseInt(this.score_.innerHTML );}
   get losses() {return parseInt(this.losses_.innerHTML);}
