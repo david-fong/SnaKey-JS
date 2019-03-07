@@ -9,7 +9,7 @@ table {
     
     /* Main font style: */
     font-family:        Consolas;
-    font-size:          3.4vmin;
+    font-size:          3.2vmin;
     font-weight:        bold;
     user-select:        none;
     
@@ -21,13 +21,20 @@ td {
     overflow-x:         hidden;
     overflow-y:         hidden;
 }
+
+@keyframes myPause {
+    from {filter: grayscale(0%);}
+    to   {filter: grayscale(100%);}
+}
 .grid {
     cursor:             arrow;
     background-color:   #3f5e77;
     
     table-layout:       fixed;
-    width:              95vmin;
-    height:             100vmin;
+    width:              90vmin;
+    height:             90vmin;
+    
+    animation: myPause 0.5s ease-in-out 0s infinite alternate-reverse both paused;
 }
 /* Generic formatting for any tile in the grid */
 .grid td { cursor:  arrow;   }

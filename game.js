@@ -59,6 +59,8 @@ class Pos {
   }
 }
 
+/* cells are given an id following: 't<pos.x>,<pos.y>'
+ */
 class Tile {
   constructor(pos, cell) {
     this.pos  = pos;
@@ -105,6 +107,7 @@ class Game {
     
     // Initialize Table display:
     let dGrid = document.createElement('table');
+    dGrid.id = 'grid';
     dGrid.className = 'grid';
     for (let y = 0; y < width; y++) {
       let row = [];
@@ -117,7 +120,17 @@ class Game {
       }
       this.grid.push(row);
     }
+    // Describe animation for pausing/unpausing the game:
     document.body.appendChild(dGrid);
+    this.pauseAnim = () => {
+      this.pauseButton.disabled = true;
+      dGrid.style.animationPlayState = 'running';
+    }
+    dGrid.addEventListener('animationiteration', () => {
+      dGrid.style.animationPlayState = 'paused';
+      if (!this.gameIsOver) this.pauseButton.disabled = false;
+    });
+    
     this.makeLowerBar();
     
     // TODO: set all character fields / positions.
@@ -125,6 +138,7 @@ class Game {
       this[character] = new Pos();
     }
     
+    this.gameIsOver = true;
     this.restart();
   }
   
@@ -134,15 +148,17 @@ class Game {
     lBar.className = 'lBar';
     let row = lBar.insertRow();
     
-    // Buttons:
+    // Setup button displays:
     for (let bName of ['restart', 'pause',]) {
       let ppty = document.createElement('button');
       this[bName + 'Button'] = ppty;
       ppty.innerHTML = bName;
       row.insertCell().appendChild(ppty);
     }
-    this.restartButton.onclick = () => this.restart();
-    this.pauseButton.onclick   = () => this.togglePause();
+    
+    // Assign callbacks to buttons:
+    this.restartButton.onclick = () =>   this.restart();
+    this.pauseButton.onclick   = () => { this.togglePause(); this.pauseAnim(); };
     
     // Score displays:
     this.score_  = row.insertCell();
@@ -189,9 +205,17 @@ class Game {
     this.spawnTargets();
     
     // Start the characters moving:
-    this.pauseButton.disable = false;
-    this.togglePause('pause');
+    if (!this.gameIsOver) {
+      if (this.pauseButton.innerHTML == 'unpause') {
+        this.gameIsOver = true;
+      }
+      this.togglePause('pause');
+    }
     this.togglePause('unpause');
+    if (this.gameIsOver) {
+      this.gameIsOver = false;
+      this.pauseAnim();
+    }
   }
   
   // Only used as a helper method in restart().
@@ -481,8 +505,8 @@ class Game {
    * Toggles the pause button to unpause on next click.
    */
   togglePause(force=undefined) {
-    // A method is requesting to force
-    // the game to a certain state:
+    // Handle if a method is requesting to
+    // force the game to a certain state:
     if (force == 'pause') {
       this.pauseButton.innerHTML = 'pause';
       this.togglePause();
@@ -493,26 +517,29 @@ class Game {
       return;
     }
     
-    // The player pressed the pause button:
     let that = this;
+    
+    // The player pressed the pause button:
     if (this.pauseButton.innerHTML == 'pause') {
-      document.body.onkeydown = () => {};
+      this.pauseButton.innerHTML = 'unpause';
+      document.body.onkeydown    = () => {};
       // TODO: freeze all the enemies:
       clearTimeout(that.chaserCancel);
-      this.pauseButton.innerHTML = 'unpause';
       
     // The user pressed the un-pause button:
     } else {
+      this.pauseButton.innerHTML = 'pause';
       document.body.onkeydown = () => this.movePlayer(event);
       // TODO: unfreeze all the enemies:
+      clearTimeout(that.chaserCancel);
       this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1100);
-      this.pauseButton.innerHTML = 'pause';
-      
     }
   }
   gameOver() {
+    this.gameIsOver = true;
+    this.pauseAnim();
     this.togglePause('pause');
-    this.pauseButton.disable = true;
+    this.pauseButton.disabled = true;
   }
   
   tileAt(pos) {
