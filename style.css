@@ -1,22 +1,36 @@
 table {
-    border-spacing:     2px;
+    border-spacing:     0.13em;
     empty-cells:        show;
+    text-align:         center;
+    vertical-align:     middle;
+    
+    text-overflow:      clip;
+    white-space:        nowrap;
+    
+    /* Main font style: */
+    font-family:        Consolas;
+    font-size:          3.4vmin;
+    font-weight:        bold;
+    user-select:        none;
+    
+    /* Default font color: */
+    color:              black;
 }
 td {
-    height:             1.2em;
-    text-align:         center;
-    overflow:           hidden;
-    vertical-align:     middle;
-    border-collapse:    collapse;
-    font:               system 8pt bold;
+    /* Crop text that won't fit: */
+    overflow-x:         hidden;
+    overflow-y:         hidden;
 }
 .grid {
     cursor:             arrow;
     background-color:   #3f5e77;
+    
+    table-layout:       fixed;
+    width:              95vmin;
+    height:             100vmin;
 }
 /* Generic formatting for any tile in the grid */
-.grid td { width:   1.1em;   
-           cursor:  arrow;   }
+.grid td { cursor:  arrow;   }
 .lBar    { cursor:  pointer; }
 .lBar td { width:   4.3em;   }
 
@@ -27,11 +41,9 @@ td {
 }
 .target {
     background-color:   #5cc679;
-    color:              black;
 }
 .player {
     background-color:   #2fc2e0;
-    color:              black;
 }
 .trail  {
     background-color:   #3f7ba3;
@@ -39,13 +51,10 @@ td {
 }
 .chaser {
     background-color:   #ff75ce;
-    color:              black;
 }
 .nommer {
     background-color:   #2aa8f7;
-    color:              black;
 }
 .runner {
     background-color:   #ffdb3f;
-    color:              black;
 }
