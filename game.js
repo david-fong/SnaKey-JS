@@ -1,64 +1,3 @@
-class Pos {
-  constructor(x=0, y=0) {
-    this.x = x;
-    this.y = y;
-  }
-  
-  // Basic arithmetic functions:
-  add(other) {
-    return new Pos(this.x + other.x, this.y + other.y);
-  }
-  sub(other) {
-    return new Pos(this.x - other.x, this.y - other.y);
-  }
-  abs() {
-    return new Pos(Math.abs(this.x), Math.abs(this.y));
-  }
-  
-  // Distance functions:
-  norm() {
-    return Math.sqrt()
-  }
-  squareNorm() {
-    let abs = this.abs();
-    return Math.max(abs.x, abs.y);
-  }
-  linearNorm() {
-    let abs = this.abs();
-    return abs.x + abs.y;
-  }
-  
-  // Bounds checking and adjustment:
-  inBounds(bound) {
-    let xInside = this.x >= 0 && this.x < bound;
-    let yInside = this.y >= 0 && this.y < bound;
-    return xInside && yInside;
-  }
-  trunc(radius=1) {
-    let x = this.x;
-    if (x < -radius) x = -radius;
-    else if (x > radius) x = radius;
-    
-    let y = this.y;
-    if (y < -radius) y = -radius;
-    else if (y > radius) y = radius;
-    
-    return new Pos(x, y);
-  }
-  
-  // Please only call on other Pos instances.
-  equals(other) {
-    return this.x == other.x && this.y == other.y;
-  }
-  
-  // Bounds are exclusive:
-  static rand(bound) {
-    let x = Math.floor(Math.random() * bound);
-    let y = Math.floor(Math.random() * bound);
-    return new Pos(x, y);
-  }
-}
-
 /* cells are given an id following: 't<pos.x>,<pos.y>'
  */
 class Tile {
@@ -138,12 +77,6 @@ class Game {
     for (let character in faces) {
       this[character] = new Pos();
     }
-    let pad = Math.floor(this.width / 6);
-    let lower = 0 + pad, upper = this.width - pad - 1;
-    this.corners = [
-      new Pos(lower, lower), new Pos(upper, lower),
-      new Pos(lower, upper), new Pos(upper, upper),
-    ];
     
     // Start the game:
     this.gameIsOver = true;
@@ -239,11 +172,10 @@ class Game {
     this.moveCharOnto('player', new Pos(mid, mid));
     
     // Spawn enemies:
-    let slots = this.corners.slice();
+    let slots = Pos.corners(this.width);
+    slots.sort((a, b) => 0.5 - Math.random());
     for (let enemy of ['chaser', 'nommer', 'runner']) {
-      let i = Math.floor(Math.random() * slots.length);
-      this.moveCharOnto(enemy, slots[i]);
-      slots.splice(i, 1);
+      this.moveCharOnto(enemy, slots.shift());
     }
   }
   
@@ -400,7 +332,7 @@ class Game {
     dest = this.enemyDest(this.chaser, dest);
     this.moveCharOnto('chaser', dest);
     let loop = this.moveChaser.bind(this);
-    this.chaserCancel = setTimeout(loop, 800);
+    this.chaserCancel = setTimeout(loop, 1100);
   }
   
   /* Nommer moves toward a target and avoids
@@ -427,6 +359,35 @@ class Game {
     this.moveCharOnto('nommer', dest, true);
     let loop = this.moveNommer.bind(this);
     this.nommerCancel = setTimeout(loop, 800);
+  }
+  
+  moveRunner() {
+    this.moveCharOffOf('runner', true);
+    
+    // First, check if the runner was caught:
+    if (this.player.sub(this.runner).squareNorm() == 1) {
+      this.losses = Math.floor(this.losses * 2 / 3);
+    }
+    
+    // Choose a corner to move to.
+    // *Bias towards closest to runner:
+    let corners = Pos.corners(this.width, Math.floor(this.width / 6));
+    let dist  = (cnPos) => this.runner.sub(cnPos).squareNorm();
+    corners.sort((a, b) => dist(b) - dist(a));
+    
+    // Exclude the two closest to player:
+    let danger = (cnPos) => this.player.sub(cnPos).squareNorm();
+    corners.sort((a, b) => danger(a) - danger(b));
+    corners = corners.slice(2);
+    
+    // Choose that closest to the runner:
+    corners.sort((a, b) => dist(a) - dist(b));
+    let dest = corners[0];
+    
+    dest = this.enemyDest(this.runner, dest);
+    this.moveCharOnto('runner', dest);
+    let loop = this.moveRunner.bind(this);
+    this.runnerCancel = setTimeout(loop, 800);
   }
   
   // All enemy moves need to pass through this function:
@@ -551,6 +512,7 @@ class Game {
     let that = this;
     clearTimeout(that.chaserCancel);
     clearTimeout(that.nommerCancel);
+    clearTimeout(that.runnerCancel);
     
     // The player pressed the pause button:
     if (this.pauseButton.innerHTML == 'pause') {
@@ -565,6 +527,7 @@ class Game {
       // TODO: unfreeze all the enemies:
       this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);
       this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
+      this.runnerCancel = setTimeout(that.moveRunner.bind(that), 1000);
     }
   }
   
