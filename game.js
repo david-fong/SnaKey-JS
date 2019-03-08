@@ -207,7 +207,7 @@ class Game {
     valid.forEach(key => weights.set(
       key, Math.pow(4, lowest - this.populations[key])
       ));
-    choice = weightedChoice(weights);
+    let choice = weightedChoice(weights);
     
     // Handle choice:
     this.populations[choice]++;
@@ -505,6 +505,23 @@ class Game {
     } else {
       return desired;
     }
+  }
+  
+  /* Returns a speed in tiles per second.
+   * Uses an upside-down bell-curve with
+   * score + losses as the input variable.
+   * curveDown is in the rage [0, 1]. It
+   * compresses the effect of the input.
+   */
+  enemyBaseSpeed(curveDown=0) {
+    let obtained = Math.pow(this.score + this.losses, 1 - curveDown);
+    let high = 1.5;
+    let low = 0.35;
+    let defaultNumTargets = Math.pow(20, 2) / Game.targetThinness;
+    let slowness = 25 * defaultNumTargets;
+    
+    let exp = Math.pow(obtained / slowness, 2);
+    return (high - low) * (1 - Math.pow(2, exp)) + low;
   }
   
   // 
