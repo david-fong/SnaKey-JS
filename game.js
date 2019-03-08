@@ -14,18 +14,17 @@ class Tile {
   set coloring(cn) { this.cell.className = cn;   }
 }
 
-// weights is a map from choices to their weights.
+// weights is a Map from choices to their weights.
 function weightedChoice(weights) {
-  let sum = (accumulator, another) => accumulator + another;
-  let total_weight = Object.values(weights).reduce(sum);
-  let random = Math.random() * total_weight;
+  let totalWeight = 0;
+  weights.forEach(weight => totalWeight += weight);
+  let random = Math.random() * totalWeight;
   
-  for (let [choice, weight] of Object.entries(weights)) {
+  for (let [choice, weight] of weights.entries()) {
     if (random < weight) return choice;
     else random -= weight;
   }
-  document.write('uhoh');
-  return Object.keys(weights)[0];
+  throw 'weights are all zero. #entries: ' + weights.size + totalWeight;
 }
 
 // Game base settings:
@@ -45,6 +44,7 @@ class Game {
     this.grid  = [];
     this.width = width;
     this.lang_choice = 'english_lower';
+     // TODO @below: do this calculation on spot where used?
     this.numTargets  = this.width * this.width / targetThinness;
     
     // Initialize Table display:
@@ -201,10 +201,11 @@ class Game {
     }
     
     // Initialize weights for valid keys and choose one:
-    let weights = {};
-    for (let key of valid) { weights[key] = this.populations[key]; }
-    let lowest = Math.min(...Object.values(weights));
-    for (let key of valid) { weights[key] = Math.pow(4, lowest-weights[key]); }
+    let weights = new Map();
+    let lowest = Math.min(...Object.values(this.populations));
+    valid.forEach(key => weights.set(
+      key, Math.pow(4, lowest - this.populations[key])
+      ));
     let choice = weightedChoice(weights);
     
     // Handle choice:
@@ -215,30 +216,41 @@ class Game {
   /* Maintains a fixed number ot targets on the grid.
    * Weighs spawn locations toward the center, away from
    * all hungry characters, and favours dispersion.
+   * Call when a hungry character lands on a target.
    */
   spawnTargets() {
-    function bell(p1, p2, radius, lip=1, peak=1) {
-      let dist = p1.sub(p2).norm();
-      let exponent = -Math.pow(2 * dist / radius, 2);
-      return (peak - lip) * Math.pow(2, exponent) + lip;
+    // Radius is a scalar to this.width.
+    let bell = (p1, p2, radius) => {
+      let dist = p1.sub(p2).norm() / this.width;
+      let exp = Math.pow(2 * dist / radius, 2);
+      return Math.pow(2, -exp);
+    };
+    
+    // Get all valid target-spawn positions:
+    let choices = this.grid.filter(tile => 
+      !this.isCharacter(tile) && 
+      !this.targets.includes(tile.pos)
+      );
+    choices = choices.map(tile => tile.pos);
+    let center = new Pos(
+      Math.floor(this.width / 2),
+      Math.floor(this.width / 2));
+    
+    let weights = new Map();
+    for (let chPos of choices) {
+      weights.set(chPos, 
+        5/3 * bell(center, chPos, 0.8) +
+         bell(this.player, chPos, 1/3) +
+         bell(this.nommer, chPos, 1/3)
+      );
     }
     
+    // Spawn targets until the correct #targets is met:
     while(this.targets.length < this.numTargets) {
-      let choices = [];
-      
-      var destPos  = Pos.rand(this.width, this.width);
-      var destTile = this.tileAt(destPos);
-      
-      // Check if the dest is valid:
-      // (ie. it is not a character and it is not already a target:
-      let alreadyTarget = this.targets.some(tgPos => destPos.equals(tgPos));
-      while(this.isCharacter(destTile) || alreadyTarget) {
-        var destPos  = Pos.rand(this.width, this.width);
-        var destTile = this.tileAt(destPos);
-      }
-      
-      this.targets.push(destPos);
-      this.tileAt(destPos).coloring = 'target';
+      let choice = weightedChoice(weights);
+      this.targets.push(choice);
+      this.tileAt(choice).coloring = 'target';
+      weights.delete(choice);
     }
   }
   
@@ -408,20 +420,21 @@ class Game {
   enemyDiffTrunc(origin, dest) {
     let diff = dest.sub(origin);
     // If there's no diagonal part, truncate and return:
-    if (diff.x == 0 || diff.y == 0) { return diff.trunc(1); }
+    if (diff.x == 0 || diff.y == 0 || diff.x == diff.y) {
+      return diff.trunc(1);
+    }
     let abs = diff.abs();
     
     // Decide whether to keep the diagonal:
     // When axisPercent ~ 1, diagonal component is small.
     let axisPercent = Math.abs(abs.x-abs.y) / (abs.x+abs.y);
-    if (weightedChoice({
-        true:      axisPercent,
-        false: 1 - axisPercent,})) {
-      if (abs.x > abs.y) {
-        diff.y = 0;
-      } else if (abs.x < abs.y) {
-        diff.x = 0;
-      }
+    
+    let weights = new Map();
+    weights.set(true,  axisPercent);
+    weights.set(false, 1 - axisPercent);
+    if (weightedChoice(weights)) {
+      if      (abs.x > abs.y) { diff.y = 0; }
+      else if (abs.x < abs.y) { diff.x = 0; }
     }
     // Return the truncated step:
     return diff.trunc(1);
@@ -450,9 +463,9 @@ class Game {
       alts.sort((tA, tB) => pref(tA) - pref(tB));
       
       // Generate weights:
-      weights = {};
+      weights = new Map();
       for (let altTile of alts) {
-        weights[altTile.pos] = Math.pow(4, pref(altTile));
+        weights.set(altTile.pos, Math.pow(4, pref(altTile)));
       }
       // Return a weighted choice:
       return weightedChoice(weights);
@@ -547,9 +560,8 @@ class Game {
   
   gameOver() {
     this.gameIsOver = true;
-    this.pauseAnim();
     this.togglePause('pause');
-    this.pauseButton.disabled = true;
+    this.pauseAnim();
   }
   
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }

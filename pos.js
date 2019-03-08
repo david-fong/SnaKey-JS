@@ -19,7 +19,7 @@ class Pos {
   
   // Distance functions:
   norm() {
-    return Math.sqrt()
+    return Math.sqrt(this.x * this.x + this.y * this.y);
   }
   squareNorm() {
     let abs = this.abs();
