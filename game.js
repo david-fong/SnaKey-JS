@@ -24,7 +24,8 @@ function weightedChoice(weights) {
     if (random < weight) return choice;
     else random -= weight;
   }
-  throw 'weights are all zero. #entries: ' + weights.size + totalWeight;
+  throw 'weights values either not all numbers, or all zero.' + 
+        '#entries: ${weights.size}. total weight: ${totalWeight}';
 }
 
 // Game base settings:
@@ -206,14 +207,7 @@ class Game {
     valid.forEach(key => weights.set(
       key, Math.pow(4, lowest - this.populations[key])
       ));
-    // TODO: getting bug at game-over where runner attempts last moveOffOf
-    // and the shuffle operation generates weights with all values == NaN.
-    let choice;
-    try {
-      choice = weightedChoice(weights);
-    } catch(e) {
-      //for (let key in this.populations) console.log(key, this.populations[key]);
-    }
+    choice = weightedChoice(weights);
     
     // Handle choice:
     this.populations[choice]++;
@@ -361,6 +355,7 @@ class Game {
         this.moveCharOffOf('chaser', true);
         this.tileAt(this.player).coloring = 'chaser';
         this.gameOver();
+        return;
       }
     }
     
