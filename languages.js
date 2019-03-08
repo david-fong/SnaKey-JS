@@ -1,3 +1,5 @@
+'use strict';
+
 var languages = {
   'english_lower': {},
 }

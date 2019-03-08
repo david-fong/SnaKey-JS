@@ -1,3 +1,5 @@
+'use strict';
+
 /* cells are given an id following: 't<pos.x>,<pos.y>'
  */
 class Tile {
@@ -50,15 +52,13 @@ class Game {
     dGrid.id = 'grid';
     dGrid.className = 'grid';
     for (let y = 0; y < width; y++) {
-      let row = [];
       let dRow = dGrid.insertRow();
       for (let x = 0; x < width; x++) {
         let cell        = dRow.insertCell();
         cell.id         = 't' + x + ',' + y;
         cell.className  = 'tile';
-        row.push(new Tile(new Pos(x, y), cell));
+        this.grid.push(new Tile(new Pos(x, y), cell));
       }
-      this.grid.push(row);
     }
     // Describe animation for pausing/unpausing the game:
     document.body.appendChild(dGrid);
@@ -132,14 +132,13 @@ class Game {
     this.heat = 0;
     
     // Re-shuffle all tiles:
-    for (let row of this.grid)
-      for (let tile of row) {
-        tile.key = '_';
-        tile.coloring = 'tile';
-      }
-    for (let y = 0; y < this.width; y++)
-      for (let x = 0; x < this.width; x++)
-        this.shuffle(new Pos(x, y));
+    for (let tile of this.grid) {
+      tile.key = '_';
+      tile.coloring = 'tile';
+    }
+    for (let tile of this.grid) {
+      this.shuffle(tile.pos);
+    }
     
     // After spawing characters, spawn targets:
     this.spawnCharacters();
@@ -213,10 +212,20 @@ class Game {
     this.tileAt(pos).key = choice;
   }
   
-  /* Highlights an existing tile as a target:
+  /* Maintains a fixed number ot targets on the grid.
+   * Weighs spawn locations toward the center, away from
+   * all hungry characters, and favours dispersion.
    */
   spawnTargets() {
+    function bell(p1, p2, radius, lip=1, peak=1) {
+      let dist = p1.sub(p2).norm();
+      let exponent = -Math.pow(2 * dist / radius, 2);
+      return (peak - lip) * Math.pow(2, exponent) + lip;
+    }
+    
     while(this.targets.length < this.numTargets) {
+      let choices = [];
+      
       var destPos  = Pos.rand(this.width, this.width);
       var destTile = this.tileAt(destPos);
       
@@ -239,17 +248,22 @@ class Game {
    * do not contain the player or an enemy:
    */
   adjacent(pos, radius=1) {
-    // Get all neighboring tiles in 5x5 area:
-    let lb    = Math.max(0,          pos.y - radius);
-    let ub    = Math.min(this.width, pos.y + radius + 1);
-    let rows  = this.grid.slice(lb, ub);
-    lb        = Math.max(0,          pos.x - radius);
-    ub        = Math.min(this.width, pos.x + radius + 1);
-    rows      = rows.map(row => row.slice(lb, ub));
+    // Get all neighboring tiles in (2*radius + 1)^2 area:
+    let yLower = Math.max(0,          pos.y - radius);
+    let yUpper = Math.min(this.width, pos.y + radius + 1);
+    let xLower = Math.max(0,          pos.x - radius);
+    let xUpper = Math.min(this.width, pos.x + radius + 1);
     
+    let neighbors = [];
+    for (let y = yLower; y < yUpper; y++) {
+      for (let x = xLower; x < xUpper; x++) {
+        neighbors.push(this.tileAt(new Pos(x, y)));
+      }
+    }
     // Filter out tiles that are characters:
-    let neighbors = [].concat(...rows);
-    return neighbors.filter(nbTile => nbTile.key in this.language, this); // TODO: check 'this'
+    return neighbors.filter(
+      nbTile => nbTile.key in this.language, this
+      );
   }
   
   /* 
@@ -510,6 +524,7 @@ class Game {
     }
     
     let that = this;
+    // Freeze all the enemies:
     clearTimeout(that.chaserCancel);
     clearTimeout(that.nommerCancel);
     clearTimeout(that.runnerCancel);
@@ -518,13 +533,12 @@ class Game {
     if (this.pauseButton.innerHTML == 'pause') {
       this.pauseButton.innerHTML = 'unpause';
       document.body.onkeydown    = () => {};
-      // TODO: freeze all the enemies:
       
     // The user pressed the un-pause button:
     } else {
       this.pauseButton.innerHTML = 'pause';
       document.body.onkeydown = () => this.movePlayer(event);
-      // TODO: unfreeze all the enemies:
+      // Unfreeze all the enemies:
       this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);
       this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
       this.runnerCancel = setTimeout(that.moveRunner.bind(that), 1000);
@@ -538,7 +552,7 @@ class Game {
     this.pauseButton.disabled = true;
   }
   
-  tileAt(pos) { return this.grid[pos.y][pos.x]; }
+  tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
   isCharacter(tile) { return !tile.key in this.language; }
   
   get score()  {return parseInt(this.score_.innerHTML );}
