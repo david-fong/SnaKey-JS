@@ -13,6 +13,11 @@ class Pos {
   sub(other) {
     return new Pos(this.x - other.x, this.y - other.y);
   }
+  mul(scalar) {
+    let x = Math.round(scalar * this.x);
+    let y = Math.round(scalar * this.y);
+    return new Pos(x, y);
+  }
   abs() {
     return new Pos(Math.abs(this.x), Math.abs(this.y));
   }
@@ -62,9 +67,15 @@ class Pos {
   }
   
   // Bounds are exclusive:
-  static rand(bound) {
-    let x = Math.floor(Math.random() * bound);
-    let y = Math.floor(Math.random() * bound);
+  static rand(bound, signed=false) {
+    let x, y;
+    if (signed) {
+      x = Math.trunc((Math.rand - 0.5) * 2 * bound);
+      y = Math.trunc((Math.rand - 0.5) * 2 * bound);
+    } else {
+      x = Math.floor(Math.random() * bound);
+      y = Math.floor(Math.random() * bound);
+    }
     return new Pos(x, y);
   }
 }

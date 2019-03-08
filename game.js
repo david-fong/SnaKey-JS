@@ -36,6 +36,13 @@ var faces = {
   'runner': ':D',
 };
 
+/* 
+ *
+ * TODO:
+ * timing control for enemy moves.
+ * runner vector sum away from player.
+ * measure player score/grade @gameover.
+ */
 class Game {
   constructor(width=20) {
     /* Internal representation of display grid: 
@@ -160,18 +167,12 @@ class Game {
   
   // Only used as a helper method in restart().
   spawnCharacters() {
-    // Spawn all characters by moving
-    // them onto their start positions:
-    for (let character in faces) {
-      this.moveCharOffOf(character);
-    }
-    
     // Spawn the player:
     let mid = Math.floor(this.width / 2);
     this.moveCharOnto('player', new Pos(mid, mid));
     
     // Spawn enemies:
-    let slots = Pos.corners(this.width);
+    let slots = Pos.corners(this.width, 4);
     slots.sort((a, b) => 0.5 - Math.random());
     for (let enemy of ['chaser', 'nommer', 'runner']) {
       this.moveCharOnto(enemy, slots.shift());
@@ -185,12 +186,11 @@ class Game {
    * expected to be done externally.
    */
   shuffle(pos) {
-    let neighbors = this.adjacent(pos, 2);
-    
-    // Filter all keys keeping those that
+    // Filter all keys, keeping those that
     // won't cause movement ambiguities:
     let valid = [];
     let l = this.language;
+    let neighbors = this.adjacent(pos, 2);
     for (let opt in this.language) {
       if (!neighbors.some(nbTile => 
         l[nbTile.key].includes(l[opt]) ||
@@ -206,7 +206,14 @@ class Game {
     valid.forEach(key => weights.set(
       key, Math.pow(4, lowest - this.populations[key])
       ));
-    let choice = weightedChoice(weights);
+    // TODO: getting bug at game-over where runner attempts last moveOffOf
+    // and the shuffle operation generates weights with all values == NaN.
+    let choice;
+    try {
+      choice = weightedChoice(weights);
+    } catch(e) {
+      //for (let key in this.populations) console.log(key, this.populations[key]);
+    }
     
     // Handle choice:
     this.populations[choice]++;
@@ -274,8 +281,7 @@ class Game {
     }
     // Filter out tiles that are characters:
     return neighbors.filter(
-      nbTile => nbTile.key in this.language, this
-      );
+      nbTile => nbTile.key in this.language);
   }
   
   /* 
@@ -337,6 +343,9 @@ class Game {
   }
   
   /* Chaser moves in the direction of the player.
+   * Speed is a function of player's score and
+   * losses. May miss the player when they are
+   * moving quickly and have a trail.
    */
   moveChaser() {
     this.moveCharOffOf('chaser', true);
@@ -349,7 +358,7 @@ class Game {
     } else {
       // Handle if the chaser would land on the player:
       if ((this.chaser.sub(this.player)).squareNorm() == 1) {
-        this.moveCharOffOf('chaser');
+        this.moveCharOffOf('chaser', true);
         this.tileAt(this.player).coloring = 'chaser';
         this.gameOver();
       }
@@ -363,6 +372,9 @@ class Game {
   
   /* Nommer moves toward a target and avoids
    * competition with the player for a target.
+   * Speed augented by burst that jumps up when
+   * the player consumes a target, and cools down
+   * as the nommer moves.
    */
   moveNommer() {
     this.moveCharOffOf('nommer');
@@ -387,6 +399,10 @@ class Game {
     this.nommerCancel = setTimeout(loop, 800);
   }
   
+  /* Runner moves away from the player using
+   * hidden corner strategy. Speed is a funct-
+   * ion of distance from the player.
+   */
   moveRunner() {
     this.moveCharOffOf('runner', true);
     
@@ -395,6 +411,31 @@ class Game {
       this.losses = Math.floor(this.losses * 2 / 3);
     }
     
+    let dest;
+    // The runner is a safe distance from the player:
+    if (this.runner.sub(this.player).norm() >= this.width / 2) {
+      // Follow the chaser.
+      let toChaser   = new Pos(this.chaser.sub(this.runner));
+      let fromNommer = new Pos(this.runner.sub(this.nommer));
+      dest = this.runner.add(toChaser).add(fromNommer);
+      dest = dest.add(Pos.rand(2, true));
+      
+    // The runner is NOT a safe distance from the player:
+    } else {
+      dest = this.cornerStrat0();
+      let cornerDist = Math.pow(dest.sub(this.runner).norm(), 2);
+      let fromPlayer = this.runner.sub(this.player);
+      fromPlayer = fromPlayer.mul(
+        Math.pow(cornerDist / fromPlayer.norm(), 0.3));
+      dest = dest.add(fromPlayer);
+    }
+    
+    dest = this.enemyDest(this.runner, dest);
+    this.moveCharOnto('runner', dest);
+    let loop = this.moveRunner.bind(this);
+    this.runnerCancel = setTimeout(loop, 800);
+  }
+  cornerStrat0() {
     // Choose a corner to move to.
     // *Bias towards closest to runner:
     let corners = Pos.corners(this.width, Math.floor(this.width / 6));
@@ -408,12 +449,7 @@ class Game {
     
     // Choose that closest to the runner:
     corners.sort((a, b) => dist(a) - dist(b));
-    let dest = corners[0];
-    
-    dest = this.enemyDest(this.runner, dest);
-    this.moveCharOnto('runner', dest);
-    let loop = this.moveRunner.bind(this);
-    this.runnerCancel = setTimeout(loop, 800);
+    return corners[0];
   }
   
   // All enemy moves need to pass through this function:
@@ -450,8 +486,9 @@ class Game {
   enemyDest(origin, dest) {
     let diff = this.enemyDiffTrunc(origin, dest);
     let desired = origin.add(diff);
-    function pref(altTile) {
-      return origin.add(diff.mul(2)).sub(altTile.pos).linearNorm();
+    let pref = altTile => {
+      let altDist = origin.add(diff.mul(2)).sub(altTile.pos);
+      return altDist.linearNorm();
     }
     
     // Handle if the desired step-destination has a conflict:
@@ -459,11 +496,11 @@ class Game {
       this.isCharacter(this.tileAt(desired))) {
       // Choose one of the two best alternatives:
       let alts = this.adjacent(origin);
-      alts.push(this.tileAt(origin));
-      alts.sort((tA, tB) => pref(tA) - pref(tB));
+      alts.sort((tA, tB) => pref(tB) - pref(tA));
+      if (alts.length > 3) alts = alts.slice(3);
       
       // Generate weights:
-      weights = new Map();
+      let weights = new Map();
       for (let altTile of alts) {
         weights.set(altTile.pos, Math.pow(4, pref(altTile)));
       }
@@ -498,9 +535,10 @@ class Game {
    * targets, and trimming the player's trail.
    */
   moveCharOnto(character, dest, hungry=false) {
-    this[character] = dest;
     let tile = this.tileAt(dest);
+    if (this.isCharacter(tile)) throw 'moving character onto character not allowed';
     this.populations[tile.key]--;
+    this[character] = dest;
     tile.coloring = character;
     tile.key = faces[character];
     
@@ -558,6 +596,8 @@ class Game {
     }
   }
   
+  /* Forces / waits for the player to restart the game.
+   */
   gameOver() {
     this.gameIsOver = true;
     this.togglePause('pause');
@@ -565,7 +605,7 @@ class Game {
   }
   
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
-  isCharacter(tile) { return !tile.key in this.language; }
+  isCharacter(tile) { return !(tile.key in this.language); }
   
   get score()  {return parseInt(this.score_.innerHTML );}
   get losses() {return parseInt(this.losses_.innerHTML);}
