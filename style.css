@@ -9,9 +9,15 @@
   --dfChaser:  #ff75ce;
   --dfNommer:  #2aa8f7;
   --dfRunner:  #ffdb3f;
+  
+  --myPauseAnim: myPause 0.5s ease-in-out 0s infinite alternate-reverse both paused;
+}
+@keyframes myPause {
+  from {filter: grayscale(0%)  brightness(100%);  }
+  to   {filter: grayscale(85%) brightness(130%);}
 }
 
-table {
+table, button {
   border-spacing:     0.13em;
   empty-cells:        show;
   text-align:         center;
@@ -28,17 +34,13 @@ table {
   /* Default font color: */
   color:              black;
 }
-td {
+td, button {
   /* Crop text that won't fit: */
   overflow-x:         hidden;
   overflow-y:         hidden;
   border-radius:      0.25em;
 }
 
-@keyframes myPause {
-  from {filter: grayscale(0%);  }
-  to   {filter: grayscale(100%);}
-}
 .grid {
   cursor:             arrow;
   background-color:   #3f5e77;
@@ -47,12 +49,12 @@ td {
   width:              90vmin;
   height:             90vmin;
   
-  animation: myPause 0.5s ease-in-out 0s infinite alternate-reverse both paused;
+  animation:          var(--myPauseAnim);
 }
 /* Generic formatting for any tile in the grid */
 .grid td { cursor:  arrow;   }
 .lBar    { cursor:  pointer; }
-.lBar td { width:   4.3em;   }
+.lBar td { width:   2em;   }
 
 /* Coloring for tiles containing no game elements. */
 .tile   { background-color: var(--tileBg,  --dfTileBg);

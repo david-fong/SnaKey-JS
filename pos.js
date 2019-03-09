@@ -70,8 +70,8 @@ class Pos {
   static rand(bound, signed=false) {
     let x, y;
     if (signed) {
-      x = Math.trunc((Math.rand - 0.5) * 2 * bound);
-      y = Math.trunc((Math.rand - 0.5) * 2 * bound);
+      x = Math.trunc((Math.random() - 0.5) * 2 * bound);
+      y = Math.trunc((Math.random() - 0.5) * 2 * bound);
     } else {
       x = Math.floor(Math.random() * bound);
       y = Math.floor(Math.random() * bound);

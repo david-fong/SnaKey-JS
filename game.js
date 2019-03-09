@@ -24,8 +24,8 @@ function weightedChoice(weights) {
     if (random < weight) return choice;
     else random -= weight;
   }
-  throw 'weights values either not all numbers, or all zero.' + 
-        '#entries: ${weights.size}. total weight: ${totalWeight}';
+  throw 'weights values either not all numbers, or all zero.\n' + 
+        '#entries: ' + weights.size + '. total weight: ' + totalWeight;
 }
 
 // Game base settings:
@@ -41,7 +41,6 @@ var faces = {
  *
  * TODO:
  * timing control for enemy moves.
- * runner vector sum away from player.
  * measure player score/grade @gameover.
  */
 class Game {
@@ -99,15 +98,16 @@ class Game {
     
     // Setup button displays:
     for (let bName of ['restart', 'pause',]) {
-      let ppty = document.createElement('button');
-      this[bName + 'Button'] = ppty;
-      ppty.innerHTML = bName;
-      row.insertCell().appendChild(ppty);
+      let btn = document.createElement('button');
+      this[bName + 'Button'] = btn;
+      btn.innerHTML = bName;
+      row.insertCell().appendChild(btn);
     }
     
     // Assign callbacks to buttons:
-    this.restartButton.onclick = () =>   this.restart();
+    this.restartButton.onclick = () => { this.restart(); };
     this.pauseButton.onclick   = () => { this.togglePause(); this.pauseAnim(); };
+    this.pauseButton.innerHTML = 'unpause';
     
     // Score displays:
     this.score_  = row.insertCell();
@@ -153,16 +153,13 @@ class Game {
     this.spawnTargets();
     
     // Start the characters moving:
-    if (!this.gameIsOver) {
-      if (this.pauseButton.innerHTML == 'unpause') {
-        this.gameIsOver = true;
-      }
-      this.togglePause('pause');
+    if (this.pauseButton.innerHTML == 'unpause') {
+      this.pauseAnim();
     }
+    this.togglePause('pause');
     this.togglePause('unpause');
     if (this.gameIsOver) {
       this.gameIsOver = false;
-      this.pauseAnim();
     }
   }
   
@@ -174,7 +171,7 @@ class Game {
     
     // Spawn enemies:
     let slots = Pos.corners(this.width, 4);
-    slots.sort((a, b) => 0.5 - Math.random());
+    slots.sort((a, b) => Math.random() - 0.5);
     for (let enemy of ['chaser', 'nommer', 'runner']) {
       this.moveCharOnto(enemy, slots.shift());
     }
@@ -344,25 +341,32 @@ class Game {
   moveChaser() {
     this.moveCharOffOf('chaser', true);
     let dest = this.player;
+    let speed = this.enemyBaseSpeed();
     
-    // TODO: Miss logic goes here:
-    let miss = false;
-    if (miss) {
+    // Chaser may miss if the player is moving quickly:
+    let maxMissWeight = 4, equivPoint = 4;
+    let power = this.playerAvgPeriod() * speed / equivPoint;
+    let weights = new Map();
+    weights.set(false, 1);
+    weights.set(true, Math.pow(maxMissWeight, 1 - power));
+    let miss = weightedChoice(weights);
+    
+    if (miss && this.trail.length > 0) {
       dest = this.trail[this.trail.length-1];
-    } else {
-      // Handle if the chaser would land on the player:
-      if ((this.chaser.sub(this.player)).squareNorm() == 1) {
-        this.moveCharOffOf('chaser', true);
-        this.tileAt(this.player).coloring = 'chaser';
-        this.gameOver();
-        return;
-      }
+      
+    // Handle if the chaser would land on the player:
+    } else if ((this.chaser.sub(this.player)).squareNorm() == 1) {
+      this.moveCharOffOf('chaser', true);
+      this.tileAt(this.player).coloring = 'chaser';
+      this.gameOver();
+      return;
     }
     
+    // Execute the move:
     dest = this.enemyDest(this.chaser, dest);
     this.moveCharOnto('chaser', dest);
     let loop = this.moveChaser.bind(this);
-    this.chaserCancel = setTimeout(loop, 1100);
+    this.chaserCancel = setTimeout(loop, 1000 / speed);
   }
   
   /* Nommer moves toward a target and avoids
@@ -386,12 +390,14 @@ class Game {
     let dest = targets[0];
     
     // Decrease the player's heat stat:
-    if (this.heat - 1  >= 0) this.heat--;
+    if (this.heat - 1 >= 0) this.heat--;
     
     dest = this.enemyDest(this.nommer, dest);
     this.moveCharOnto('nommer', dest, true);
+    
     let loop = this.moveNommer.bind(this);
-    this.nommerCancel = setTimeout(loop, 800);
+    let speed = this.enemyBaseSpeed(0.05) * (this.heat / 5 + 1);
+    this.nommerCancel = setTimeout(loop, 1000 / speed);
   }
   
   /* Runner moves away from the player using
@@ -401,21 +407,21 @@ class Game {
   moveRunner() {
     this.moveCharOffOf('runner', true);
     
-    // First, check if the runner was caught:
+    // First, handle if the runner was caught:
     if (this.player.sub(this.runner).squareNorm() == 1) {
       this.losses = Math.floor(this.losses * 2 / 3);
     }
-    
     let dest;
-    // The runner is a safe distance from the player:
+    // If the runner is a safe distance from the player:
     if (this.runner.sub(this.player).norm() >= this.width / 2) {
       // Follow the chaser.
-      let toChaser   = new Pos(this.chaser.sub(this.runner));
-      let fromNommer = new Pos(this.runner.sub(this.nommer));
-      dest = this.runner.add(toChaser).add(fromNommer);
-      dest = dest.add(Pos.rand(2, true));
+      let toChaser   = this.chaser.sub(this.runner);
+      let fromNommer = this.runner.sub(this.nommer);
+      fromNommer = fromNommer.mul(this.width/9/fromNommer.norm())
+      let rand = Pos.rand(2, true);
+      dest = this.runner.add(toChaser).add(fromNommer).add(rand);
       
-    // The runner is NOT a safe distance from the player:
+    // If the runner is NOT a safe distance from the player:
     } else {
       dest = this.cornerStrat0();
       let cornerDist = Math.pow(dest.sub(this.runner).norm(), 2);
@@ -514,14 +520,23 @@ class Game {
    * compresses the effect of the input.
    */
   enemyBaseSpeed(curveDown=0) {
-    let obtained = Math.pow(this.score + this.losses, 1 - curveDown);
-    let high = 1.5;
-    let low = 0.35;
-    let defaultNumTargets = Math.pow(20, 2) / Game.targetThinness;
+    let obtained = Math.pow(this.score + (this.losses), 1-curveDown);
+    let high = 1.5, low = 0.35;
+    let defaultNumTargets = 20 * 20 / targetThinness;
     let slowness = 25 * defaultNumTargets;
     
     let exp = Math.pow(obtained / slowness, 2);
-    return (high - low) * (1 - Math.pow(2, exp)) + low;
+    return (high - low) * (1 - Math.pow(2, -exp)) + low;
+  }
+  
+  /* 
+   */
+  playerAvgPeriod() {
+    this.timeDeltas = this.timeDeltas.slice(-5);
+    let date = new Date();
+    let totalTime = this.timeDeltas.reduce((a, b) => a + b, 0) + 
+      date.getSeconds() - this.startTime;
+    return totalTime / (this.timeDeltas.length + 1);
   }
   
   // 
@@ -559,8 +574,13 @@ class Game {
     for (let i = 0; i < this.targets.length; i++) {
       // If a hungry character landed on a target:
       if (dest.equals(this.targets[i])) {
-        if (character == 'player') { this.score  += 1; }
-        else                       { this.losses += 1; }
+        if (character == 'player') {
+          this.score += 1;
+          this.heat = this.numTargets * Math.sqrt(
+            this.heat / this.numTargets + 1);
+        } else {
+          this.losses += 1;
+        }
         // Remove this Pos from the targets list:
         this.targets.splice(i, 1);
         this.trimTrail();
