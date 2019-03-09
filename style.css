@@ -11,18 +11,33 @@
   --dfNommer:   #2aa8f7;
   --dfRunner:   #ffdb3f;
   
-  --myFont:     bold 3.2vmin Consolas;
+  /*--myFont:     bold 3.2vmin Consolas;*/
+  --myFont: bold 90% Consolas;
   
-  --myPauseAnim: myPause 0.5s ease-in-out 0s infinite alternate-reverse both paused;
+  --myPauseAnimation: myPause 0.5s ease-in-out 0s infinite alternate-reverse both paused;
 }
 @keyframes myPause {
   from {filter: grayscale(0%)  brightness(100%); }
   to   {filter: grayscale(80%) brightness(120%); }
 }
-body { animation:   var(--myPauseAnim); }
+body {
+  animation:   var(--myPauseAnimation);
+}
+.background {
+  background-color: var(--lines, --dfLines);
+  height:           100%;
+  width:            100%;
+  
+  display:          flex;
+  justify-content:  center;
+  align-items:      center;
+}
 
-table, button {
+
+
+table {
   border-spacing:   0.13em;
+  border-width:     0px;
   table-layout:     fixed;
   empty-cells:      show;
   text-align:       center;
@@ -33,35 +48,50 @@ table, button {
   
   font:             var(--myFont);
   color:            black;
-  background-color: var(--lines, --dfLines);
 }
-td, button {
-  overflow-x:       hidden;
-  overflow-y:       hidden;
-  border-radius:    0.25em;
-}
-button:disabled { filter: brightness(90%);  }
-button:hover    { filter: brightness(110%); }
-button {
-  width:            5em;
-  cursor:           pointer;
-  border:           none;
-  border-color:     var(--lines, --dfLines);
-}
-
 /* Generic formatting for any tile in the grid */
 .grid {
   cursor:           arrow;
   width:            90vmin;
   height:           90vmin;
+  max-height:       50vmin;
+}
+
+
+
+td {
+  overflow-x:       hidden;
+  overflow-y:       hidden;
+  border-radius:    0.25em;
+  vertical-align:   -100%;
 }
 .grid td { cursor:  arrow; }
 
-.lBar    { width:   90vmin; }
-.lBar td { width:   5em;    }
 
-/* Coloring for tiles containing no game elements. */
-.tile, button { 
+
+
+.lBar    { width:   90vmin; }
+.lBar td { width:   5.5em;  }
+button:disabled { filter: brightness(90%);  }
+button:hover    { filter: brightness(110%); }
+button, select {
+  width:            5em;
+  cursor:           pointer;
+  border:           none;
+  border-color:     var(--lines, --dfLines);
+  
+  font:             inherit;
+  color:            inherit;
+  
+  overflow-x:       inherit;
+  overflow-y:       inherit;
+  border-radius:    inherit;
+}
+
+
+
+/* Coloring for tiles */
+.tile, button, select { 
           background-color: var(--tileBg,  --dfTileBg);
           color:            var(--tileFg,  --dfTileFg);  }
 .target { background-color: var(--target,  --dfTarget);  }

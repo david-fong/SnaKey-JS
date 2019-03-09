@@ -11,7 +11,7 @@ class Tile {
   set key(key) { this.cell.innerHTML = key;  }
   
   get coloring()   { return this.cell.className; }
-  set coloring(cn) { this.cell.className = cn;   }
+  set coloring(cl) { this.cell.className = cl;   }
 }
 
 // weights is a Map from choices to their weights.
@@ -32,7 +32,7 @@ function weightedChoice(weights) {
 var targetThinness = 72;
 var faces = {
   'player': ':|',
-  'chaser': ':>',
+  'chaser': ':>>>><br>|',
   'nommer': ':O',
   'runner': ':D',
 };
@@ -40,7 +40,8 @@ var faces = {
 /* 
  *
  * TODO:
- * timing control for enemy moves.
+ * add labels in lower bar for score and losses.
+ * timing control for runner moves.
  * measure player score/grade @gameover.
  */
 class Game {
@@ -50,7 +51,6 @@ class Game {
      * .pos (x, y) and .key properties. */
     this.grid  = [];
     this.width = width;
-    this.lang_choice = 'english_lower';
      // TODO @below: do this calculation on spot where used?
     this.numTargets  = this.width * this.width / targetThinness;
     
@@ -75,6 +75,7 @@ class Game {
       if (!this.gameIsOver) this.pauseButton.disabled = false;
     });
     
+    this.makeUpperBar();
     this.makeLowerBar();
     
     // Create fields for each character's position:
@@ -84,10 +85,42 @@ class Game {
     
     // Start the game:
     this.gameIsOver = true;
+    this.pauseButton.innerHTML = 'unpause';
     this.restart();
   }
   
-  // Called only once during instance initialization.
+  /* Makes info popup button, and
+   * language and color scheme select.
+   */
+  makeUpperBar() {
+    let ubar = document.getElementById('ubar');
+    let row = ubar.insertRow();
+    
+    // TODO: game description popup button:
+    this.controlsButton = document.createElement('button');
+    this.controlsButton.innerHTML = 'controls';
+    row.insertCell().appendChild(this.controlsButton);
+    
+    
+    // TODO: coloring radiobutton drop-down:
+    this.langSelect = document.createElement('select');
+    this.langSelect.name = 'language';
+    for (let lang in languages) {
+      let choice = document.createElement('option');
+      choice.innerHTML = lang;
+      choice.value     = lang;
+      this.langSelect.add(choice);
+    }
+    this.langSelect.value = 'eng';
+    row.insertCell().appendChild(this.langSelect);
+    
+    // TODO: language radiobutton drop-down:
+    
+  }
+  
+  /* Creates restart and pause buttons,
+   * and also score and losses counters.
+   */
   makeLowerBar() {
     let lBar = document.getElementById('lbar');
     let row = lBar.insertRow();
@@ -103,7 +136,6 @@ class Game {
     // Assign callbacks to buttons:
     this.restartButton.onclick = () => { this.restart(); };
     this.pauseButton.onclick   = () => { this.togglePause(); this.pauseAnim(); };
-    this.pauseButton.innerHTML = 'unpause';
     
     // Score displays:
     this.score_  = row.insertCell();
@@ -116,7 +148,7 @@ class Game {
    */
   restart() {
     // Reset all display-key populations:
-    this.language = languages[this.lang_choice];
+    this.language = languages[this.langSelect.value];
     this.populations = {};
     for (let key in this.language) {
       this.populations[key] = 0;
