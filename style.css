@@ -1,68 +1,73 @@
 /* Default color scheme: */
 :root {
-  --dfTileBg:  #2e3b48;
-  --dfTileFg:  #aebde2;
-  --dfTarget:  #5cc679;
-  --dfPlayer:  #2fc2e0;
-  --dfTrailBg: #3f7ba3;
-  --dfTrailFg: #182028;
-  --dfChaser:  #ff75ce;
-  --dfNommer:  #2aa8f7;
-  --dfRunner:  #ffdb3f;
+  --dfLines:    #3f5e77;
+  --dfTileBg:   #2e3b48;
+  --dfTileFg:   #aebde2;
+  --dfTarget:   #5cc679;
+  --dfPlayer:   #2fc2e0;
+  --dfTrailBg:  #3f7ba3;
+  --dfTrailFg:  #182028;
+  --dfChaser:   #ff75ce;
+  --dfNommer:   #2aa8f7;
+  --dfRunner:   #ffdb3f;
+  
+  --myFont:     bold 3.2vmin Consolas;
   
   --myPauseAnim: myPause 0.5s ease-in-out 0s infinite alternate-reverse both paused;
 }
 @keyframes myPause {
-  from {filter: grayscale(0%)  brightness(100%);  }
-  to   {filter: grayscale(85%) brightness(130%);}
+  from {filter: grayscale(0%)  brightness(100%); }
+  to   {filter: grayscale(80%) brightness(120%); }
 }
+body { animation:   var(--myPauseAnim); }
 
 table, button {
-  border-spacing:     0.13em;
-  empty-cells:        show;
-  text-align:         center;
+  border-spacing:   0.13em;
+  table-layout:     fixed;
+  empty-cells:      show;
+  text-align:       center;
   
-  text-overflow:      clip;
-  white-space:        nowrap;
+  text-overflow:    clip;
+  white-space:      nowrap;
+  user-select:      none;
   
-  /* Main font style: */
-  font-family:        Consolas;
-  font-size:          3.2vmin;
-  font-weight:        bold;
-  user-select:        none;
-  
-  /* Default font color: */
-  color:              black;
+  font:             var(--myFont);
+  color:            black;
+  background-color: var(--lines, --dfLines);
 }
 td, button {
-  /* Crop text that won't fit: */
-  overflow-x:         hidden;
-  overflow-y:         hidden;
-  border-radius:      0.25em;
+  overflow-x:       hidden;
+  overflow-y:       hidden;
+  border-radius:    0.25em;
+}
+button:disabled { filter: brightness(90%);  }
+button:hover    { filter: brightness(110%); }
+button {
+  width:            5em;
+  cursor:           pointer;
+  border:           none;
+  border-color:     var(--lines, --dfLines);
 }
 
-.grid {
-  cursor:             arrow;
-  background-color:   #3f5e77;
-  
-  table-layout:       fixed;
-  width:              90vmin;
-  height:             90vmin;
-  
-  animation:          var(--myPauseAnim);
-}
 /* Generic formatting for any tile in the grid */
-.grid td { cursor:  arrow;   }
-.lBar    { cursor:  pointer; }
-.lBar td { width:   2em;   }
+.grid {
+  cursor:           arrow;
+  width:            90vmin;
+  height:           90vmin;
+}
+.grid td { cursor:  arrow; }
+
+.lBar    { width:   90vmin; }
+.lBar td { width:   5em;    }
 
 /* Coloring for tiles containing no game elements. */
-.tile   { background-color: var(--tileBg,  --dfTileBg);
-          color:            var(--tileFg,  --dfTileFg); }
-.target { background-color: var(--target,  --dfTarget); }
-.player { background-color: var(--player,  --dfPlayer); }
+.tile, button { 
+          background-color: var(--tileBg,  --dfTileBg);
+          color:            var(--tileFg,  --dfTileFg);  }
+.target { background-color: var(--target,  --dfTarget);  }
+.player { background-color: var(--player,  --dfPlayer);  }
 .trail  { background-color: var(--trailBg, --dfTrailBg);
           color:            var(--trailFg, --dfTrailBg); }
-.chaser { background-color: var(--chaser,  --cfChaser); }
-.nommer { background-color: var(--nommer,  --dfNommer); }
-.runner { background-color: var(--runner,  --dfRunner); }
+.chaser { background-color: var(--chaser,  --cfChaser);  }
+.nommer { background-color: var(--nommer,  --dfNommer);  }
+.runner { background-color: var(--runner,  --dfRunner);  }

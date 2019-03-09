@@ -55,9 +55,7 @@ class Game {
     this.numTargets  = this.width * this.width / targetThinness;
     
     // Initialize Table display:
-    let dGrid = document.createElement('table');
-    dGrid.id = 'grid';
-    dGrid.className = 'grid';
+    let dGrid = document.getElementById('grid');
     for (let y = 0; y < width; y++) {
       let dRow = dGrid.insertRow();
       for (let x = 0; x < width; x++) {
@@ -68,13 +66,12 @@ class Game {
       }
     }
     // Describe animation for pausing/unpausing the game:
-    document.body.appendChild(dGrid);
     this.pauseAnim = () => {
       this.pauseButton.disabled = true;
-      dGrid.style.animationPlayState = 'running';
+      document.body.style.animationPlayState = 'running';
     }
-    dGrid.addEventListener('animationiteration', () => {
-      dGrid.style.animationPlayState = 'paused';
+    document.body.addEventListener('animationiteration', () => {
+      document.body.style.animationPlayState = 'paused';
       if (!this.gameIsOver) this.pauseButton.disabled = false;
     });
     
@@ -92,8 +89,7 @@ class Game {
   
   // Called only once during instance initialization.
   makeLowerBar() {
-    let lBar = document.createElement('table');
-    lBar.className = 'lBar';
+    let lBar = document.getElementById('lbar');
     let row = lBar.insertRow();
     
     // Setup button displays:
@@ -112,8 +108,6 @@ class Game {
     // Score displays:
     this.score_  = row.insertCell();
     this.losses_ = row.insertCell();
-    
-    document.body.appendChild(lBar);
   }
   
   /* Shuffles entire grid and resets scores.

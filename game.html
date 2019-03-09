@@ -2,19 +2,35 @@
 <html>
   <head>
     <title>SnaKey - David F.</title>
-    <meta name='author' content='David Fong' />
-    <meta name='description' content='An original game based on the snake game.' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <meta   name='author'       content='David Fong' />
+    <meta   name='description'  content='An original game based on the snake game.' />
+    <meta   name='viewport'     content='width=device-width, initial-scale=1.0' />
     
     <script src='languages.js'></script>
     <script src='pos.js'></script>
     <script src='game.js'></script>
     
-    <link rel='stylesheet' type='text/css' href='style.css'></style>
-    <link rel='stylesheet' type='text/css' href='colors/dark_theme_nw.css'></style>
+    <!-- Main Formatting: -->
+    <link   rel='stylesheet'
+            type='text/css'
+            href='style.css'>
+            </style>
+    <!-- Variable Color Scheme: -->
+    <link   rel='stylesheet'
+            type='text/css'
+            href='colors/dark_theme_nw.css'
+            class='colors'>
+            </style>
   </head>
     
-  <body>
+  <body style='display:flex;justify-content:center;align-items:center;'>
+    <!-- Main Contents: -->
+    <div id='display' style='width:90vmin'>
+      <table id='grid' class='grid'></table>
+      <table id='lbar' class='lbar'></table>
+    </div>
+    
+    <!-- Game Code: -->
     <script>
     var width = 20;
     var game  = new Game(width);
