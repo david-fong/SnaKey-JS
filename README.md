@@ -1,4 +1,4 @@
-# SnaKey
+# [SnaKey](https://david-fong.github.io/SnaKey-JS/game.html "click to play!")
 
 This a game I came up with over the reading break (2018).
 
