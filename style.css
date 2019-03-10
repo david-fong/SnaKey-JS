@@ -33,8 +33,6 @@ body {
   width:            100%;
   
   z-index:          -1;
-  top:              0;
-  left:             0;
   position:         fixed;
   
   background-color: var(--lines, --dfLines);
@@ -51,13 +49,12 @@ body {
   align-items:      center;
 }
 
-
-
 table {
   border-spacing:   0.5vmin;
   table-layout:     fixed;
   
   empty-cells:      show;
+  cursor:           arrow;
   user-select:      none;
   
   text-overflow:    clip;
@@ -65,51 +62,39 @@ table {
   text-align:       center;
 }
 td {
-  box-sizing:       border-box;
   padding:          0px;
-  border-radius:    12%;
 }
-/* Generic formatting for any tile in the grid */
-.grid {
-  cursor:           arrow;
-}
+
+
+/* Base-formatting for tiles inside .grid */
 .grid div {
   overflow-x:       hidden;
   overflow-y:       hidden;
+  vertical-align:   middle;
   
-  border-radius:    inherit;
+  border-radius:    14%;
   height:           var(--tileHt);
   width:            var(--tileHt);
-  
-  vertical-align:   middle;
   font-size:        calc(var(--tileHt) * 0.8);
 }
 
 
-
-
-.tBar, .bBar {
-  height:           5vmin;
-}
-.tBar td, .bBar td {
-  width:            5.5em;
-}
-button:disabled { filter: brightness(90%);  }
-button:hover    { filter: brightness(110%); }
-button, select {
-  width:            6em;
-  cursor:           pointer;
+.tBar, .bBar       { height: 5vmin;            }
+.hBarItem:disabled { filter: brightness(80%);  }
+.hBarItem:hover    { filter: brightness(115%); }
+.hBarItem {
+  width:            8em;
   border:           none;
-  
-  font:             inherit;
-  color:            inherit;
   border-radius:    0.3em;
+  
+  cursor:           pointer;
+  font:             inherit;
 }
 
 
 
 /* Coloring for tiles */
-.tile, button, select { 
+.tile, .hBarItem { 
           background-color: var(--tileBg,  --dfTileBg);
           color:            var(--tileFg,  --dfTileFg);  }
 .target { background-color: var(--target,  --dfTarget);  }
@@ -119,6 +104,7 @@ button, select {
 .chaser { background-color: var(--chaser,  --cfChaser);  }
 .nommer { background-color: var(--nommer,  --dfNommer);  }
 .runner { background-color: var(--runner,  --dfRunner);  }
+
 /* Rotates faces right-side up (I don't like it):
 .grid td [class$='er'] {
   transform: rotate(90deg);

@@ -32,7 +32,7 @@ function weightedChoice(weights) {
 var targetThinness = 72;
 var faces = {
   'player': ':|',
-  'chaser': ':>>>><br>|',
+  'chaser': ':>',
   'nommer': ':O',
   'runner': ':D',
 };
@@ -40,15 +40,15 @@ var faces = {
 /* 
  *
  * TODO:
- * add labels in lower bar for score and losses.
- * timing control for runner moves.
+ * make cornerStrat1: blacklist only 1 corner,
+ *   sort by runner-corner and player-corner dists.
  * measure player score/grade @gameover.
+ * Cookies for: name, high-score(score, losses), version.
+ * popupControls();
+ * auto-pause when the window loses focus.
  */
 class Game {
   constructor(width=20) {
-    /* Internal representation of display grid: 
-     * 2D row-order-array of tiles, which have*
-     * .pos (x, y) and .key properties. */
     this.grid  = [];
     this.width = width;
      // TODO @below: do this calculation on spot where used?
@@ -77,16 +77,20 @@ class Game {
       document.body.style.animationPlayState = 'paused';
       if (!this.gameIsOver) this.pauseButton.disabled = false;
     });
+    window.onblur = () => {
+      if (this.pauseButton.innerHTML == 'pause') {
+        this.pauseAnim();
+      }
+      this.togglePause('pause');
+    };
     
     this.makeUpperBar();
     this.makeLowerBar();
     
-    // Create fields for each character's position:
+    // Setup invariants and then start the game:
     for (let character in faces) {
       this[character] = new Pos();
     }
-    
-    // Start the game:
     this.gameIsOver = true;
     this.pauseButton.innerHTML = 'unpause';
     this.restart();
@@ -99,26 +103,44 @@ class Game {
     let ubar = document.getElementById('ubar');
     let row = ubar.insertRow();
     
-    // TODO: game description popup button:
-    this.controlsButton = document.createElement('button');
-    this.controlsButton.innerHTML = 'controls';
-    row.insertCell().appendChild(this.controlsButton);
+    // Controls-popup button:
+    let controls = document.createElement('button');
+    controls.className = 'hBarItem';
+    controls.innerHTML = 'controls';
+    controls.onclick   = () => { this.popupControls() };
+    row.insertCell().appendChild(controls);
     
-    
-    // TODO: coloring radiobutton drop-down:
-    this.langSelect = document.createElement('select');
-    this.langSelect.name = 'language';
+    // Language radiobutton drop-down:
+    let langSel = document.createElement('select');
+    langSel.className = 'hBarItem';
+    langSel.name = 'language';
     for (let lang in languages) {
       let choice = document.createElement('option');
       choice.innerHTML = lang;
       choice.value     = lang;
-      this.langSelect.add(choice);
+      langSel.add(choice);
     }
-    this.langSelect.value = 'eng';
-    row.insertCell().appendChild(this.langSelect);
+    langSel.value = 'eng';
+    row.insertCell().appendChild(langSel);
+    this.langSelect = langSel;
     
-    // TODO: language radiobutton drop-down:
-    
+    // Coloring radiobutton drop-down:
+    let colorSel = document.createElement('select');
+    colorSel.className = 'hBarItem';
+    colorSel.name = 'coloring';
+    for (let fileName of csFileNames) {
+      console.log(fileName);
+      let choice = document.createElement('option');
+      let fn = fileName.replace(/_/g, ' ');
+      choice.innerHTML = fn;
+      choice.value     = 'colors/' + fileName + '.css';
+      colorSel.add(choice);
+    }
+    colorSel.onchange  = () => {
+      document.getElementById('coloring').href = colorSel.value;
+    };
+    row.insertCell().appendChild(colorSel);
+    colorSel.selectedIndex = 0;
   }
   
   /* Creates restart and pause buttons,
@@ -131,6 +153,7 @@ class Game {
     // Setup button displays:
     for (let bName of ['restart', 'pause',]) {
       let btn = document.createElement('button');
+      btn.className = 'hBarItem';
       this[bName + 'Button'] = btn;
       btn.innerHTML = bName;
       row.insertCell().appendChild(btn);
@@ -141,8 +164,18 @@ class Game {
     this.pauseButton.onclick   = () => { this.togglePause(); this.pauseAnim(); };
     
     // Score displays:
-    this.score_  = row.insertCell();
-    this.losses_ = row.insertCell();
+    for (let lb of ['score', 'losses']) {
+      let cell = row.insertCell()
+      cell.className = 'hBarItem';
+      
+      let label = document.createElement('span');
+      label.innerHTML = lb + ': ';
+      cell.appendChild(label);
+      
+      let counter = document.createElement('span');
+      cell.appendChild(counter);
+      this[lb + '_'] = counter;
+    }
   }
   
   /* Shuffles entire grid and resets scores.
@@ -394,6 +427,8 @@ class Game {
     // Execute the move:
     dest = this.enemyDest(this.chaser, dest);
     this.moveCharOnto('chaser', dest);
+    
+    // Setup the timed loop:
     let loop = this.moveChaser.bind(this);
     this.chaserCancel = setTimeout(loop, 1000 / speed);
   }
@@ -421,9 +456,11 @@ class Game {
     // Decrease the player's heat stat:
     if (this.heat - 1 >= 0) this.heat--;
     
+    // Execute the move:
     dest = this.enemyDest(this.nommer, dest);
     this.moveCharOnto('nommer', dest, true);
     
+    // Setup the timed loop:
     let loop = this.moveNommer.bind(this);
     let speed = this.enemyBaseSpeed(0.05) * (this.heat / 5 + 1);
     this.nommerCancel = setTimeout(loop, 1000 / speed);
@@ -433,11 +470,11 @@ class Game {
    * hidden corner strategy. Speed is a funct-
    * ion of distance from the player.
    */
-  moveRunner() {
+  moveRunner(escape=false) {
     this.moveCharOffOf('runner', true);
     
     // First, handle if the runner was caught:
-    if (this.player.sub(this.runner).squareNorm() == 1) {
+    if (!escape && this.player.sub(this.runner).squareNorm() == 1) {
       this.losses = Math.floor(this.losses * 2 / 3);
     }
     let dest;
@@ -453,6 +490,7 @@ class Game {
     // If the runner is NOT a safe distance from the player:
     } else {
       dest = this.cornerStrat0();
+      // Additional vector to avoid the player:
       let cornerDist = Math.pow(dest.sub(this.runner).norm(), 2);
       let fromPlayer = this.runner.sub(this.player);
       fromPlayer = fromPlayer.mul(
@@ -460,15 +498,31 @@ class Game {
       dest = dest.add(fromPlayer);
     }
     
+    // Execute the move:
     dest = this.enemyDest(this.runner, dest);
     this.moveCharOnto('runner', dest);
+    
+    // Move again if still beside player:
+    if (this.player.sub(this.runner).squareNorm() == 1) {
+      this.moveRunner(true);
+    }
+    if (escape) return;
+    
+    // Calculate how fast the runner should move:
+    let speedup = 2.9; // The maximum frequency multiplier.
+    let power   = 5.5; // Increasing this shrinks high-urgency range.
+    let dist = dest.sub(this.player).squareNorm();
+    let urgency = Math.pow((this.width + 1 - dist) / this.width, power);
+    urgency = urgency * (speedup - 1) + 1;
+    
+    // Setup the timed loop:
     let loop = this.moveRunner.bind(this);
-    this.runnerCancel = setTimeout(loop, 800);
+    this.runnerCancel = setTimeout(loop, 1000 / urgency);
   }
   cornerStrat0() {
     // Choose a corner to move to.
     // *Bias towards closest to runner:
-    let corners = Pos.corners(this.width, Math.floor(this.width / 6));
+    let corners = Pos.corners(this.width, Math.floor(this.width / 8));
     let dist  = (cnPos) => this.runner.sub(cnPos).squareNorm();
     corners.sort((a, b) => dist(b) - dist(a));
     
@@ -663,6 +717,12 @@ class Game {
     this.gameIsOver = true;
     this.togglePause('pause');
     this.pauseAnim();
+  }
+  
+  /* TODO:
+   */
+  popupControls() {
+    ;
   }
   
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
