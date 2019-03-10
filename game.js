@@ -37,15 +37,40 @@ var faces = {
   'runner': ':D',
 };
 
-/* 
+/* Object keys:
+ * -- width         : number
+ * -- langSelect    : <select>
+ * -- language      : object{string: string}
+ * -- populations   : object{string: number}
+ * -- grid          : array[Tile]
+ * -- numTargets    : number
+ *
+ * -- restartButton : <button>
+ * -- pauseButton   : <button>
+ * -- gameIsOver    : boolean
+ *
+ * -- moveStr       : string
+ * -- player        : Pos
+ * -- trail         : array[Pos]
+ * -- timeDeltas    : array[number]
+ * -- startTime     : number
+ * -- score         : <span>
+ *
+ * -- targets       : array[Pos]
+ * -- chaser        : Pos
+ * -- nommer        : Pos
+ * -- runner        : Pos
+ * -- heat          : number
+ * -- misses        : <span>
+ *
  *
  * TODO:
+ * Spice button
+ * Mute button
  * make cornerStrat1: blacklist only 1 corner,
  *   sort by runner-corner and player-corner dists.
- * measure player score/grade @gameover.
- * Cookies for: name, high-score(score, losses), version.
+ * Cookies for: name, high-score(score, misses), version.
  * popupControls();
- * auto-pause when the window loses focus.
  */
 class Game {
   constructor(width=20) {
@@ -144,7 +169,7 @@ class Game {
   }
   
   /* Creates restart and pause buttons,
-   * and also score and losses counters.
+   * and also score and misses counters.
    */
   makeLowerBar() {
     let lBar = document.getElementById('lbar');
@@ -164,7 +189,7 @@ class Game {
     this.pauseButton.onclick   = () => { this.togglePause(); this.pauseAnim(); };
     
     // Score displays:
-    for (let lb of ['score', 'losses']) {
+    for (let lb of ['score', 'misses']) {
       let cell = row.insertCell()
       cell.className = 'hBarItem';
       
@@ -173,6 +198,8 @@ class Game {
       cell.appendChild(label);
       
       let counter = document.createElement('span');
+      counter.style.width = '3ch';
+      counter.style.textAlign = 'left';
       cell.appendChild(counter);
       this[lb + '_'] = counter;
     }
@@ -191,7 +218,7 @@ class Game {
     }
     
     this.score  = 0;
-    this.losses = 0;
+    this.misses = 0;
     
     this.targets = [];
     this.trail   = [];
@@ -384,7 +411,7 @@ class Game {
   trimTrail() {
     if (this.trail.length == 0) { return; }
     
-    let net = (this.score) - 0.9 * this.losses;
+    let net = (this.score) - 0.9 * this.misses;
     if (net < 0 || this.trail.length > Math.pow(net, 3/7)) {
       // The last element is the closest to the head.
       let popTile  = this.tileAt(this.trail.shift());
@@ -397,7 +424,7 @@ class Game {
   
   /* Chaser moves in the direction of the player.
    * Speed is a function of player's score and
-   * losses. May miss the player when they are
+   * misses. May miss the player when they are
    * moving quickly and have a trail.
    */
   moveChaser() {
@@ -475,7 +502,7 @@ class Game {
     
     // First, handle if the runner was caught:
     if (!escape && this.player.sub(this.runner).squareNorm() == 1) {
-      this.losses = Math.floor(this.losses * 2 / 3);
+      this.misses = Math.floor(this.misses * 2 / 3);
     }
     let dest;
     // If the runner is a safe distance from the player:
@@ -598,12 +625,12 @@ class Game {
   
   /* Returns a speed in tiles per second.
    * Uses an upside-down bell-curve with
-   * score + losses as the input variable.
+   * score + misses as the input variable.
    * curveDown is in the rage [0, 1]. It
    * compresses the effect of the input.
    */
   enemyBaseSpeed(curveDown=0) {
-    let obtained = Math.pow(this.score + (this.losses), 1-curveDown);
+    let obtained = Math.pow(this.score + (this.misses), 1-curveDown);
     let high = 1.5, low = 0.35;
     let defaultNumTargets = 20 * 20 / targetThinness;
     let slowness = 25 * defaultNumTargets;
@@ -662,7 +689,7 @@ class Game {
           this.heat = this.numTargets * Math.sqrt(
             this.heat / this.numTargets + 1);
         } else {
-          this.losses += 1;
+          this.misses += 1;
         }
         // Remove this Pos from the targets list:
         this.targets.splice(i, 1);
@@ -729,8 +756,8 @@ class Game {
   isCharacter(tile) { return !(tile.key in this.language); }
   
   get score()  {return parseInt(this.score_.innerHTML );}
-  get losses() {return parseInt(this.losses_.innerHTML);}
+  get misses() {return parseInt(this.misses_.innerHTML);}
   set score(val)  {this.score_.innerHTML  = val;}
-  set losses(val) {this.losses_.innerHTML = val;}
+  set misses(val) {this.misses_.innerHTML = val;}
 }
 
