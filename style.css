@@ -11,81 +11,99 @@
   --dfNommer:   #2aa8f7;
   --dfRunner:   #ffdb3f;
   
-  /*--myFont:     bold 3.2vmin Consolas;*/
-  --myFont: bold 90% Consolas;
+  /* --width: _; <- declared in game.js */
+  --myFont:     bold 90% Consolas;
+  --gridDmn:    85vmin;
+  --tileHt:     calc(var(--gridDmn) / var(--width) - 0.3vmin);
   
   --myPauseAnimation: myPause 0.5s ease-in-out 0s infinite alternate-reverse both paused;
 }
 @keyframes myPause {
-  from {filter: grayscale(0%)  brightness(100%); }
-  to   {filter: grayscale(80%) brightness(120%); }
+  from {filter: grayscale(0%)   brightness(100%); }
+  to   {filter: grayscale(100%) brightness(130%); }
 }
 body {
-  animation:   var(--myPauseAnimation);
+  animation:        var(--myPauseAnimation);
+  font:             var(--myFont);
+  color:            black;
 }
 .background {
-  background-color: var(--lines, --dfLines);
+  box-sizing:       border-box;
   height:           100%;
   width:            100%;
   
+  z-index:          -1;
+  top:              0;
+  left:             0;
+  position:         fixed;
+  
+  background-color: var(--lines, --dfLines);
+}
+.vBars {
+  padding:          10px;
+  display:          grid;
+  grid-template-columns: 20% 60% 20%;
+}
+.hBars {
   display:          flex;
-  justify-content:  center;
+  flex-direction:   column;
+  justify-content:  stretch;
   align-items:      center;
 }
 
 
 
 table {
-  border-spacing:   0.13em;
-  border-width:     0px;
+  border-spacing:   0.5vmin;
   table-layout:     fixed;
+  
   empty-cells:      show;
-  text-align:       center;
+  user-select:      none;
   
   text-overflow:    clip;
   white-space:      nowrap;
-  user-select:      none;
-  
-  font:             var(--myFont);
-  color:            black;
+  text-align:       center;
+}
+td {
+  box-sizing:       border-box;
+  padding:          0px;
+  border-radius:    12%;
 }
 /* Generic formatting for any tile in the grid */
 .grid {
   cursor:           arrow;
-  width:            90vmin;
-  height:           90vmin;
-  max-height:       50vmin;
 }
-
-
-
-td {
+.grid div {
   overflow-x:       hidden;
   overflow-y:       hidden;
-  border-radius:    0.25em;
-  vertical-align:   -100%;
+  
+  border-radius:    inherit;
+  height:           var(--tileHt);
+  width:            var(--tileHt);
+  
+  vertical-align:   middle;
+  font-size:        calc(var(--tileHt) * 0.8);
 }
-.grid td { cursor:  arrow; }
 
 
 
 
-.lBar    { width:   90vmin; }
-.lBar td { width:   5.5em;  }
+.tBar, .bBar {
+  height:           5vmin;
+}
+.tBar td, .bBar td {
+  width:            5.5em;
+}
 button:disabled { filter: brightness(90%);  }
 button:hover    { filter: brightness(110%); }
 button, select {
-  width:            5em;
+  width:            6em;
   cursor:           pointer;
   border:           none;
-  border-color:     var(--lines, --dfLines);
   
   font:             inherit;
   color:            inherit;
-  
-  overflow-x:       inherit;
-  overflow-y:       inherit;
-  border-radius:    inherit;
+  border-radius:    0.3em;
 }
 
 
@@ -101,3 +119,8 @@ button, select {
 .chaser { background-color: var(--chaser,  --cfChaser);  }
 .nommer { background-color: var(--nommer,  --dfNommer);  }
 .runner { background-color: var(--runner,  --dfRunner);  }
+/* Rotates faces right-side up (I don't like it):
+.grid td [class$='er'] {
+  transform: rotate(90deg);
+}
+*/

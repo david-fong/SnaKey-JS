@@ -56,13 +56,16 @@ class Game {
     
     // Initialize Table display:
     let dGrid = document.getElementById('grid');
+    document.documentElement.style.setProperty('--width', width);
     for (let y = 0; y < width; y++) {
       let dRow = dGrid.insertRow();
       for (let x = 0; x < width; x++) {
         let cell        = dRow.insertCell();
-        cell.id         = 't' + x + ',' + y;
-        cell.className  = 'tile';
-        this.grid.push(new Tile(new Pos(x, y), cell));
+        let div = document.createElement('div');
+        div.id         = 't' + x + ',' + y;
+        div.className  = 'tile';
+        this.grid.push(new Tile(new Pos(x, y), div));
+        cell.appendChild(div);
       }
     }
     // Describe animation for pausing/unpausing the game:
