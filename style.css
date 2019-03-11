@@ -67,21 +67,48 @@ td {
 
 
 /* Base-formatting for tiles inside .grid */
-.grid div {
+.flip-card {
   overflow-x:       hidden;
   overflow-y:       hidden;
   vertical-align:   middle;
   
-  border-radius:    14%;
   height:           var(--tileHt);
   width:            var(--tileHt);
+  
+  border-radius:    14%;
   font-size:        calc(var(--tileHt) * 0.8);
+  background-color: transparent;
+}
+.flip-inner {
+  position:         relative;
+  height:           100%;
+  width:            100%;
+  transition:       transform 0.4s ease-in-out;
+  transform-style:  preserve-3d;
+}
+.flip-card:hover .flip-inner {
+  transform:        rotateY(180deg);
+}
+.flip-inner > div {
+  position:         absolute;
+  height:           100%;
+  width:            100%;
+  backface-visibility: hidden;
+}
+.flip-inner div:first-child {
+  z-index:          4;
+}
+.flip-inner div:last-child {
+  z-index:          3;
+  transform:        rotateY(180deg);
 }
 
 
+/* Horizontal Bars and their Items: */
 .tBar, .bBar       { height: 5vmin; box-sizing: border-box; }
 .hBarItem:disabled { filter: brightness(80%);  }
 .hBarItem:hover    { filter: brightness(115%); }
+.hBarItem
 .hBarItem {
   height:           inherit;
   width:            7em;
