@@ -11,10 +11,9 @@
   --dfNommer:   #2aa8f7;
   --dfRunner:   #ffdb3f;
   
-  /* --width: _; <- declared in game.js */
+  /* --width: ; <- declared in game.js */
   --myFont:     bold 90% Consolas;
-  --gridDmn:    85vmin;
-  --tileHt:     calc(var(--gridDmn) / var(--width) - 0.3vmin);
+  --tileHt:     calc(85vmin / var(--width) - 0.3vmin);
   
   --myPauseAnimation: myPause 0.5s ease-in-out 0s infinite alternate-reverse both paused;
 }
@@ -31,10 +30,8 @@ body {
   box-sizing:       border-box;
   height:           100%;
   width:            100%;
-  
-  z-index:          -1;
   position:         fixed;
-  
+  z-index:          -1;
   background-color: var(--lines, --dfLines);
 }
 .vBars {
@@ -45,16 +42,12 @@ body {
 .hBars {
   display:          flex;
   flex-direction:   column;
-  justify-content:  stretch;
+  justify-content:  center;
   align-items:      center;
 }
 
 table {
-  border-spacing:   0.5vmin;
   table-layout:     fixed;
-  
-  empty-cells:      show;
-  cursor:           arrow;
   user-select:      none;
   
   text-overflow:    clip;
@@ -66,27 +59,24 @@ td {
 }
 
 
+
 /* Base-formatting for tiles inside .grid */
-.flip-card {
+.grid td {
   overflow-x:       hidden;
   overflow-y:       hidden;
   vertical-align:   middle;
   
-  height:           var(--tileHt);
-  width:            var(--tileHt);
-  
-  border-radius:    14%;
+  border-radius:    15%;
   font-size:        calc(var(--tileHt) * 0.8);
-  background-color: transparent;
 }
 .flip-inner {
   position:         relative;
-  height:           100%;
-  width:            100%;
+  height:           var(--tileHt);
+  width:            var(--tileHt);
   transition:       transform 0.4s ease-in-out;
   transform-style:  preserve-3d;
 }
-.flip-card:hover .flip-inner {
+.grid td:hover .flip-inner {
   transform:        rotateY(180deg);
 }
 .flip-inner > div {
@@ -104,11 +94,11 @@ td {
 }
 
 
+
 /* Horizontal Bars and their Items: */
 .tBar, .bBar       { height: 5vmin; box-sizing: border-box; }
 .hBarItem:disabled { filter: brightness(80%);  }
 .hBarItem:hover    { filter: brightness(115%); }
-.hBarItem
 .hBarItem {
   height:           inherit;
   width:            7em;

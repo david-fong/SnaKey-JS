@@ -71,7 +71,6 @@ var faces = {
  *
  * TODO:
  * improve character visibility
- * hover over tile shows its typing key
  * Spice button
  * Mute button
  * make cornerStrat1: blacklist only 1 corner,
@@ -94,9 +93,6 @@ class Game {
       
       for (let x = 0; x < width; x++) {
         let cell = row.insertCell();
-        let fcard = document.createElement('div');
-        fcard.className = 'flip-card';
-        
         let fInner = document.createElement('div');
         fInner.className = 'flip-inner';
         
@@ -106,9 +102,7 @@ class Game {
 
         fInner.appendChild(front);
         fInner.appendChild(back);
-        
-        fcard.appendChild(fInner);
-        cell.appendChild(fcard);
+        cell.appendChild(fInner);
       }
     }
     

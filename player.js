@@ -141,7 +141,7 @@ class Player {
   set score(val) { this.score_.innerHTML = val;             }
   
   static makeScoreElement(labelText) {
-    let slot = document.createElement('span');
+    let slot = document.createElement('div');
     slot.className = 'hBarItem';
     
     let label = document.createElement('span');
