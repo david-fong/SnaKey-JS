@@ -1,3 +1,5 @@
+'use strict';
+
 setCookie(name, val) {
   document.cookie = [name, val].join('=') + ';';
 }

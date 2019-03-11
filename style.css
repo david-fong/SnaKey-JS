@@ -79,11 +79,12 @@ td {
 }
 
 
-.tBar, .bBar       { height: 5vmin;            }
+.tBar, .bBar       { height: 5vmin; box-sizing: border-box; }
 .hBarItem:disabled { filter: brightness(80%);  }
 .hBarItem:hover    { filter: brightness(115%); }
 .hBarItem {
-  width:            8em;
+  height:           inherit;
+  width:            7em;
   border:           none;
   border-radius:    0.3em;
   
