@@ -1,0 +1,12 @@
+:root {
+  --lines:    #78ce27;
+  --tileBg:   #8ce537;
+  --tileFg:   #006400;
+  --target:   #32cd32;
+  --player:   white;
+  --trailBg:  #adff2f;
+  --trailFg:  #006400;
+  --chaser:   #ff4500;
+  --nommer:   white;
+  --runner:   white;
+}

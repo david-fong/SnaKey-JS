@@ -69,6 +69,9 @@ var faces = {
  *
  *
  * TODO:
+ * change sidebars into floating div's.
+ * move options to left side.
+ * move scoring to right side.
  * improve character visibility
  * Spice button
  * Mute button
@@ -165,7 +168,6 @@ class Game {
       document.getElementById('coloring').href = colorSel.value;
     };
     row.insertCell().appendChild(colorSel);
-    colorSel.selectedIndex = 0;
   }
   
   /* Creates restart and pause buttons,
