@@ -14,17 +14,12 @@
   /* --width: ; <- declared in game.js */
   --myFont:     bold 90% Consolas;
   --tileHt:     calc(85vmin / var(--width) - 0.3vmin);
-  
-  --myPauseAnimation: myPause 0.5s ease-in-out 0s infinite alternate-reverse both paused;
-}
-@keyframes myPause {
-  from {filter: grayscale(0%)   brightness(100%); }
-  to   {filter: grayscale(100%) brightness(130%); }
+  --pauseFilter: grayscale(100%) brightness(130%);
 }
 body {
-  animation:        var(--myPauseAnimation);
   font:             var(--myFont);
   color:            black;
+  transition:       filter 0.5s ease-in-out;
 }
 .background {
   box-sizing:       border-box;

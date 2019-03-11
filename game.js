@@ -58,7 +58,6 @@ var faces = {
  *
  * -- restartButton : <button>
  * -- pauseButton   : <button>
- * -- gameIsOver    : boolean
  *
  * -- targets       : array[Pos]
  * -- players       : array[Player]
@@ -112,35 +111,14 @@ class Game {
       this.players.push(new Player(this, i));
     }
     
-    this.setupPauseAnimation();
+    window.onblur = () => this.togglePause('pause');
     this.makeUpperBar();
     this.makeLowerBar();
     
     // Setup invariants and then start the game:
     for (let enemy in faces) { this[enemy] = new Pos(); }
-    this.gameIsOver = true;
     this.pauseButton.innerHTML = 'unpause';
     this.restart();
-  }
-  
-  /*
-   */
-  setupPauseAnimation() {
-    // Describe animation for pausing/unpausing the game:
-    this.pauseAnim = () => {
-      this.pauseButton.disabled = true;
-      document.body.style.animationPlayState = 'running';
-    }
-    document.body.addEventListener('animationiteration', () => {
-      document.body.style.animationPlayState = 'paused';
-      if (!this.gameIsOver) this.pauseButton.disabled = false;
-    });
-    window.onblur = () => {
-      if (this.pauseButton.innerHTML == 'pause') {
-        this.pauseAnim();
-      }
-      this.togglePause('pause');
-    };
   }
   
   /* Makes info popup button, and
@@ -207,8 +185,8 @@ class Game {
     }
     
     // Assign callbacks to buttons:
-    this.restartButton.onclick = () => { this.restart(); };
-    this.pauseButton.onclick   = () => { this.togglePause(); this.pauseAnim(); };
+    this.restartButton.onclick = () => this.restart();
+    this.pauseButton.onclick   = () => this.togglePause();
     
     // Score displays:
     for (let player of this.players) {
@@ -223,6 +201,8 @@ class Game {
    * if disabled by a game-over.
    */
   restart() {
+    this.restartButton.blur();
+    
     // Reset all display-key populations:
     this.language = languages[this.langSelect.value];
     this.populations = {};
@@ -250,12 +230,9 @@ class Game {
     this.spawnTargets();
     
     // Start the characters moving:
-    if (this.pauseButton.innerHTML == 'unpause') { this.pauseAnim(); }
     this.togglePause('pause');
     this.togglePause('unpause');
-    if (this.gameIsOver) {
-      this.gameIsOver = false;
-    }
+    this.pauseButton.disabled = false;
   }
   
   // Only used as a helper method in restart().
@@ -385,6 +362,7 @@ class Game {
   }
   
   // TODO: this will need to somehow tell which player triggered the event.
+  //   triggered by some incoming remote data package:
   movePlayer(event) {
     if (!event.shiftKey) {
       this.players[0].move(event.key);
@@ -680,6 +658,8 @@ class Game {
    * Toggles the pause button to unpause on next click.
    */
   togglePause(force=undefined) {
+    this.pauseButton.blur();
+    
     // Handle if a method is requesting to
     // force the game to a certain state:
     if (force == 'pause') {
@@ -701,14 +681,14 @@ class Game {
     // The player pressed the pause button:
     if (this.pauseButton.innerHTML == 'pause') {
       this.pauseButton.innerHTML = 'unpause';
+      document.body.style.filter = 'var(--pauseFilter)';
       document.body.onkeydown    = () => {};
       
     // The user pressed the un-pause button:
     } else {
       this.pauseButton.innerHTML = 'pause';
-      // TODO: this will need to be triggered by some incoming remote data package:
+      document.body.style.filter = '';
       document.body.onkeydown = () => this.movePlayer(event);
-      // Unfreeze all the enemies:
       this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);
       this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
       this.runnerCancel = setTimeout(that.moveRunner.bind(that), 1000);
@@ -718,9 +698,8 @@ class Game {
   /* Forces / waits for the player to restart the game.
    */
   gameOver() {
-    this.gameIsOver = true;
+    this.pauseButton.disabled = true;
     this.togglePause('pause');
-    this.pauseAnim();
   }
   
   /* TODO:
