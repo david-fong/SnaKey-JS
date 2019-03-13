@@ -14,12 +14,14 @@
   /* --width: ; <- declared in game.js */
   --myFont:     bold 90% Consolas;
   --tileHt:     calc(85vmin / var(--width) - 0.3vmin);
-  --pauseFilter: grayscale(100%) brightness(130%);
+  --pauseFilter: grayscale(100%) brightness(130%) contrast(60%);
 }
 body {
   font:             var(--myFont);
+  text-align:       center;
   color:            black;
   transition:       filter 0.5s ease-in-out;
+  user-select:      none;
 }
 .background {
   box-sizing:       border-box;
@@ -34,24 +36,19 @@ body {
   display:          grid;
   grid-template-columns: 20% 60% 20%;
 }
+.lBar .rBar {  }
 .hBars {
   display:          flex;
   flex-direction:   column;
-  justify-content:  center;
   align-items:      center;
 }
 
 table {
-  table-layout:     fixed;
-  user-select:      none;
-  
+  table-layout:     fixed; /*helps with rendering speed*/
   text-overflow:    clip;
   white-space:      nowrap;
-  text-align:       center;
 }
-td {
-  padding:          0px;
-}
+td { padding:       0px; }
 
 
 
@@ -81,10 +78,9 @@ td {
   backface-visibility: hidden;
 }
 .flip-inner div:first-child {
-  z-index:          4;
+  z-index:          2;
 }
 .flip-inner div:last-child {
-  z-index:          3;
   transform:        rotateY(180deg);
 }
 

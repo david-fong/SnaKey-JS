@@ -41,7 +41,7 @@ function weightedChoice(weights) {
 // Game base settings:
 var targetThinness = 72;
 var playerFace = ':|';
-var faces = {
+var enemies = {
   'chaser': ':>',
   'nommer': ':O',
   'runner': ':D',
@@ -72,13 +72,13 @@ var faces = {
  * change sidebars into floating div's.
  * move options to left side.
  * move scoring to right side.
+ *
  * improve character visibility
  * Spice button
  * Mute button
  * make cornerStrat1: blacklist only 1 corner,
  *   sort by runner-corner and player-corner dists.
  * Cookies for: name, high-score(score, misses), version.
- * popupControls();
  * music
  */
 class Game {
@@ -119,7 +119,7 @@ class Game {
     this.makeLowerBar();
     
     // Setup invariants and then start the game:
-    for (let enemy in faces) { this[enemy] = new Pos(); }
+    for (let enemy in enemies) { this[enemy] = new Pos(); }
     this.pauseButton.innerHTML = 'unpause';
     this.restart();
   }
@@ -248,7 +248,7 @@ class Game {
     // Spawn enemies:
     let slots = Pos.corners(this.width, 3);
     slots.sort((a, b) => Math.random() - 0.5);
-    for (let enemy in faces) {
+    for (let enemy in enemies) {
       this.moveCharOnto(enemy, slots.shift());
     }
   }
@@ -424,12 +424,8 @@ class Game {
     let targets = this.targets.slice();
     
     // Get all targets exluding the third which are closest to the players:
-    let prox = (tgPos) => {
-      // Returns a target's distance from the closest player.
-      return Math.min(...this.players.map((player) => {
-        return player.pos.sub(tgPos).squareNorm()
-      }));
-    }
+    let prox = (tgPos) => Math.min(...this.players.map(
+      (player) => player.pos.sub(tgPos).squareNorm() ));
     targets.sort((a, b) => prox(a) - prox(b));
     targets = targets.slice(Math.floor(targets.length / 3));
     
@@ -459,11 +455,8 @@ class Game {
     this.moveCharOffOf('runner', true);
     
     // First, handle if the runner was caught:
-    let caught = () => {
-      return this.players.some((player) => {
-      return player.pos.sub(this.runner).squareNorm() == 1;
-      });
-    }
+    let caught = () => this.players.some((player) =>
+      player.pos.sub(this.runner).squareNorm() == 1 );
     if (!escape && caught()) {
       this.misses = Math.floor(this.misses * 2 / 3);
     }
@@ -482,7 +475,7 @@ class Game {
       
     // If the runner is NOT a safe distance from the player:
     } else {
-      dest = this.cornerStrat0();
+      dest = this.cornerStrat1();
       // Additional vector to avoid the player:
       let cornerDist = Math.pow(dest.sub(this.runner).norm(), 2);
       let fromPlayer = this.runner.sub(closestPlayer);
@@ -511,6 +504,7 @@ class Game {
     let loop = this.moveRunner.bind(this);
     this.runnerCancel = setTimeout(loop, 1000 / urgency);
   }
+  // Deprecated. use cornerStrat1
   cornerStrat0() {
     // Choose a corner to move to.
     // *Bias towards closest to runner:
@@ -528,6 +522,23 @@ class Game {
     corners.sort((a, b) => dist(a) - dist(b));
     return corners[0];
   }
+  cornerStrat1() {
+    let corners = Pos.corners(this.width, Math.floor(this.width / 8));
+    
+    // Exclude the closest and furthest corners from the closest player:
+    let closestPlayer = this.closestPlayer(this.runner).pos;
+    let danger = (cnPos) => closestPlayer.sub(cnPos).squareNorm();
+    corners.sort((a, b)  => danger(a) - danger(b));
+    corners = corners.slice(1, 3);
+    
+    // Choose the safest remaining corner:
+    let virtualPos = this.runner.add(this.runner.sub(closestPlayer));
+    let safety = (cnPos) => cnPos.sub(virtualPos).squareNorm();
+    corners.sort((a, b)  => safety(a) - safety(b));
+    return corners[0];
+    
+  }
+  
   
   // All enemy moves need to pass through this function:
   enemyDiffTrunc(origin, dest) {
@@ -638,7 +649,7 @@ class Game {
     this.populations[tile.key]--;
     this[character] = dest;
     tile.coloring   = character;
-    tile.key = faces[character];
+    tile.key = enemies[character];
     tile.seq = '<br>';
     
     // Check if a hungry character landed on a target:
