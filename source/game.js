@@ -72,12 +72,12 @@ var enemies = {
  * change sidebars into floating div's.
  * move options to left side.
  * move scoring to right side.
- *
+ * 
+ * control border-spacing of grid elements during resize.
  * improve character visibility
  * Spice button
- * Mute button
  * Cookies for: name, high-score(score, misses), version.
- * music
+ * music / sound effects
  */
 class Game {
   constructor(width=20, numPlayers=1) {

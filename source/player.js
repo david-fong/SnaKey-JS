@@ -18,6 +18,7 @@ class Player {
     this.num    = num;
     this.pos    = new Pos();
     this.score_ = Player.makeScoreElement('score' + this.num);
+    this.movingSound = new Audio('assets/sounds/keypress0.wav');
   }
   
   restart() {
@@ -85,6 +86,7 @@ class Player {
     tile.coloring = 'player';
     tile.key = playerFace;
     tile.seq = this.num;
+    this.movingSound.play();
     
     // Check if the player landed on a target:
     for (let i = 0; i < game.targets.length; i++) {

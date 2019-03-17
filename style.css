@@ -1,22 +1,9 @@
-/* Default color scheme: */
-:root {
-  --dfLines:    #3f5e77;
-  --dfTileBg:   #2e3b48;
-  --dfTileFg:   #aebde2;
-  --dfTarget:   #5cc679;
-  --dfPlayer:   #2fc2e0;
-  --dfTrailBg:  #3f7ba3;
-  --dfTrailFg:  #182028;
-  --dfChaser:   #ff75ce;
-  --dfNommer:   #2aa8f7;
-  --dfRunner:   #ffdb3f;
-  
+body {
   /* --width: ; <- declared in game.js */
   --myFont:      90% Trebuchet MS;
   --tileHt:      calc(85vmin / var(--width) - 0.3vmin);
   --pauseFilter: grayscale(100%) brightness(130%) contrast(60%);
-}
-body {
+  
   font:             var(--myFont);
   text-align:       center;
   color:            black;
@@ -24,12 +11,13 @@ body {
   user-select:      none;
 }
 .background {
-  box-sizing:       border-box;
   height:           100%;
   width:            100%;
   position:         fixed;
+  top:              0px;
+  left:             0px;
   z-index:          -1;
-  background-color: var(--lines, --dfLines);
+  background-color: var(--lines);
 }
 .vBars {
   padding:          10px;
@@ -43,22 +31,19 @@ body {
   align-items:      center;
 }
 
-table {
-  table-layout:     fixed; /*helps with rendering speed*/
-  text-overflow:    clip;
-  white-space:      nowrap;
-}
-td { padding:       0px; }
+table { table-layout: fixed; } /*helps with rendering speed*/
+td {     padding:     0px; }
 
 
 
 /* Base-formatting for tiles inside .grid */
 .grid {
-  overflow-x:       hidden;
-  overflow-y:       hidden;
   font-size:        calc(var(--tileHt) * 0.79);
 }
 .flip-inner {
+  overflow-x:       hidden;
+  overflow-y:       hidden;
+  
   position:         relative;
   height:           var(--tileHt);
   width:            var(--tileHt);
@@ -72,8 +57,10 @@ td { padding:       0px; }
   position:         absolute;
   height:           100%;
   width:            100%;
-  border-radius:    15%;
   backface-visibility: hidden;
+  
+  border-radius:    15%;
+  box-sizing:       border-box;
 }
 .flip-inner div:first-child {
   z-index:          2;
@@ -96,7 +83,6 @@ td { padding:       0px; }
   
   cursor:           pointer;
   font:             inherit;
-  box-sizing: border-box;
 }
 .scoreTag::before { content: attr(data-player) }
 
@@ -104,20 +90,19 @@ td { padding:       0px; }
 
 /* Coloring for tiles */
 .tile, .hBarItem, .scoreTag { 
-          background-color: var(--tileBg,  --dfTileBg);
-          color:            var(--tileFg,  --dfTileFg);  }
-.target { background-color: var(--target,  --dfTarget);  }
-.player { background-color: var(--player,  --dfPlayer);  }
-.trail  { background-color: var(--trailBg, --dfTrailBg);
-          color:            var(--trailFg, --dfTrailBg); }
-.chaser { background-color: var(--chaser,  --cfChaser);  }
-.nommer { background-color: var(--nommer,  --dfNommer);  }
-.runner { background-color: var(--runner,  --dfRunner);  }
+          background-color: var(--tileBg);
+          color:            var(--tileFg);  }
+.target { background-color: var(--target);  }
+.player { background-color: var(--player);  }
+.trail  { background-color: var(--trailBg);
+          color:            var(--trailFg); }
+.chaser { background-color: var(--chaser);  }
+.nommer { background-color: var(--nommer);  }
+.runner { background-color: var(--runner);  }
 
-/* adds an outline to characters:
+/* adds an outline to characters: */
 .grid div [class$='er'] {
-  outline: 2px dashed white;
-  outline-offset: -2px;
+  /*border:           1.2px solid white;*/
+  box-shadow: 0 0 0px 1.2px white inset;
 }
-*/
 
