@@ -12,8 +12,8 @@
   --dfRunner:   #ffdb3f;
   
   /* --width: ; <- declared in game.js */
-  --myFont:     bold 90% Consolas;
-  --tileHt:     calc(85vmin / var(--width) - 0.3vmin);
+  --myFont:      90% Trebuchet MS;
+  --tileHt:      calc(85vmin / var(--width) - 0.3vmin);
   --pauseFilter: grayscale(100%) brightness(130%) contrast(60%);
 }
 body {
@@ -53,13 +53,10 @@ td { padding:       0px; }
 
 
 /* Base-formatting for tiles inside .grid */
-.grid td {
+.grid {
   overflow-x:       hidden;
   overflow-y:       hidden;
-  vertical-align:   middle;
-  
-  border-radius:    15%;
-  font-size:        calc(var(--tileHt) * 0.8);
+  font-size:        calc(var(--tileHt) * 0.79);
 }
 .flip-inner {
   position:         relative;
@@ -75,6 +72,7 @@ td { padding:       0px; }
   position:         absolute;
   height:           100%;
   width:            100%;
+  border-radius:    15%;
   backface-visibility: hidden;
 }
 .flip-inner div:first-child {
@@ -90,7 +88,7 @@ td { padding:       0px; }
 .tBar, .bBar       { height: 5vmin; box-sizing: border-box; }
 .hBarItem:disabled { filter: brightness(80%);  }
 .hBarItem:hover    { filter: brightness(115%); }
-.hBarItem {
+.hBarItem, .scoreTag {
   height:           inherit;
   width:            7em;
   border:           none;
@@ -98,12 +96,14 @@ td { padding:       0px; }
   
   cursor:           pointer;
   font:             inherit;
+  box-sizing: border-box;
 }
+.scoreTag::before { content: attr(data-player) }
 
 
 
 /* Coloring for tiles */
-.tile, .hBarItem { 
+.tile, .hBarItem, .scoreTag { 
           background-color: var(--tileBg,  --dfTileBg);
           color:            var(--tileFg,  --dfTileFg);  }
 .target { background-color: var(--target,  --dfTarget);  }
@@ -114,8 +114,10 @@ td { padding:       0px; }
 .nommer { background-color: var(--nommer,  --dfNommer);  }
 .runner { background-color: var(--runner,  --dfRunner);  }
 
-/* Rotates faces right-side up (I don't like it):
-.grid td [class$='er'] {
-  transform: rotate(90deg);
+/* adds an outline to characters:
+.grid div [class$='er'] {
+  outline: 2px dashed white;
+  outline-offset: -2px;
 }
 */
+
