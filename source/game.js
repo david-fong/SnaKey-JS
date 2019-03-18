@@ -42,7 +42,7 @@ function weightedChoice(weights) {
 var targetThinness = 72;
 var playerFace = ':|';
 var enemies = {
-  'chaser': ':><br>|||',
+  'chaser': ':>',
   'nommer': ':O',
   'runner': ':D',
 };
@@ -456,7 +456,8 @@ class Game {
     // First, handle if the runner was caught:
     let caught = () => this.players.some((player) =>
       player.pos.sub(this.runner).squareNorm() == 1 );
-    if (!escape && caught()) {
+    if (caught() && !escape) {
+      // TODO: Play the caught sound here:
       this.misses = Math.floor(this.misses * 2 / 3);
     }
     
@@ -487,20 +488,16 @@ class Game {
     dest = this.enemyDest(this.runner, dest);
     this.moveCharOnto('runner', dest);
     
-    // Move again if still beside any player:
-    if (caught()) { this.moveRunner(true); }
-    if (escape) return;
-    
     // Calculate how fast the runner should move:
     closestPlayer = this.closestPlayer(this.runner).pos;
-    let speedup = 2.9; // The maximum frequency multiplier.
+    let speedup = 2.94; // The maximum frequency multiplier.
     let power   = 5.5; // Increasing this shrinks high-urgency range.
     let dist = dest.sub(closestPlayer).squareNorm();
     let urgency = Math.pow((this.width + 1 - dist) / this.width, power);
     urgency = urgency * (speedup - 1) + 1;
     
     // Setup the timed loop:
-    let loop = this.moveRunner.bind(this);
+    let loop = this.moveRunner.bind(this, caught());
     this.runnerCancel = setTimeout(loop, 1000 / urgency);
   }
   // Deprecated. use cornerStrat1
@@ -710,6 +707,7 @@ class Game {
   /* Forces / waits for the player to restart the game.
    */
   gameOver() {
+    // TODO: play a gameOver sound here:
     this.pauseButton.disabled = true;
     this.togglePause('pause');
   }

@@ -7,10 +7,11 @@
     <meta name='viewport'     content='width=device-width, initial-scale=1.0' />
     <meta charset='UTF-8' />      
     
-    <script src='assets/languages.js' charset='UTF-8'></script>
-    <script src='source/pos.js'></script>
-    <script src='source/player.js'></script>
-    <script src='source/game.js'></script>
+    <script src='source/languages.js' charset='UTF-8'></script>
+    <script src='source/sounds.js'> </script>
+    <script src='source/pos.js'>    </script>
+    <script src='source/player.js'> </script>
+    <script src='source/game.js'>   </script>
     
     <!-- Main Formatting: -->
     <link rel='stylesheet'
@@ -19,7 +20,7 @@
           </style>
     <!-- List of color scheme filenames (no spaces): -->
     <script>
-      var csFileNames = [
+      let csFileNames = [
         'dark_theme_nw', 'sheep',
       ];
     </script>
@@ -51,8 +52,8 @@
     
     <!-- Run Game Code: -->
     <script>
-      var width = 20;
-      var game  = new Game(width);
+      let width = 20;
+      let game  = new Game(width);
     </script>
   </body>
 <html>

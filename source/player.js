@@ -13,14 +13,16 @@
  * -- timeDeltas    : array[number]
  */
 class Player {
+    
   constructor(game, num) {
     this.game   = game;
     this.num    = num;
     this.pos    = new Pos();
     this.score_ = Player.makeScoreElement('score' + this.num);
-    this.movingSound = new Audio('assets/sounds/keypress0.wav');
   }
   
+  /* Resets all fields except position:
+   */
   restart() {
     this.score      = 0;
     this.trail      = [];
@@ -30,7 +32,7 @@ class Player {
     this.timeDeltas = [];
   }
   
-  /* 
+  /* Handles player input, translating it to movement:
    */
   move(key) {
     let game = this.game;
@@ -38,10 +40,9 @@ class Player {
     // If the player wants to backtrack:
     if (key == ' ') {
       // Fail if the trail is empty or choked by an enemy:
-      if (this.trail.length == 0 || game.isCharacter(
-          game.tileAt(this.trail.slice(-1)[0]))) {
-        return;
-      }
+      let trailTop = this.trail.slice(-1);
+      if (trailTop.length == 0 || game.isCharacter(
+          game.tileAt(trailTop[0]))) { return; }
       this.moveOffOf(true);
       this.moveOnto(this.trail.pop());
       return;
@@ -67,32 +68,41 @@ class Player {
     }
   }
   
+  /* Moves this player off of the grid.
+   */
   moveOffOf(backtrack=false) {
     let tile = this.game.tileAt(this.pos);
     tile.key = ' ';
     tile.seq = '<br>';
     this.game.shuffle(this.pos);
-    if (backtrack) tile.coloring = 'trail';
-    else           tile.coloring = 'tile';
+    if (backtrack) tile.coloring = 'tile';
+    else           tile.coloring = 'trail';
   }
   
+  /* Moves the player onto the position of the
+   * grid described by the Pos object, dest.
+   * Plays approprate sounds based on results.
+   */
   moveOnto(dest) {
     let game = this.game;
     let tile = game.tileAt(dest);
-    if (game.isCharacter(tile)) throw 'cannot land on character.';
     
+    // Draw the changes and play a movement sound:
     game.populations[tile.key]--;
     this.pos = dest;
     tile.coloring = 'player';
     tile.key = playerFace;
     tile.seq = this.num;
-    this.movingSound.play();
+    
+    Sounds.playEffect(Player.moveSounds);
     
     // Check if the player landed on a target:
     for (let i = 0; i < game.targets.length; i++) {
       // If the player landed on a target:
       if (dest.equals(game.targets[i])) {
         this.score += 1;
+        Sounds.playEffect(Player.eatSounds);
+        
         game.heat = game.numTargets * Math.sqrt(
           game.heat / game.numTargets + 1);
         
@@ -151,3 +161,5 @@ class Player {
     return counter;
   }
 }
+Player.moveSounds = Sounds.makeList('move', 1);
+Player.eatSounds  = Sounds.makeList('eat',  5);

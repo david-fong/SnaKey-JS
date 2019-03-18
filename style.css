@@ -1,10 +1,9 @@
 body {
-  /* --width: ; <- declared in game.js */
-  --myFont:      90% Trebuchet MS;
-  --tileHt:      calc(85vmin / var(--width) - 0.3vmin);
-  --pauseFilter: grayscale(100%) brightness(130%) contrast(60%);
+/*--width:        ; <- declared in game.js */
+  --tileHt:       calc(85vmin / var(--width));
+  --pauseFilter:  grayscale(100%) brightness(130%) contrast(60%);
   
-  font:             var(--myFont);
+  font:             90% Trebuchet MS;
   text-align:       center;
   color:            black;
   transition:       filter 0.5s ease-in-out;
@@ -32,21 +31,23 @@ body {
 }
 
 table { table-layout: fixed; } /*helps with rendering speed*/
-td {     padding:     0px; }
+td {     padding:     0px;   }
 
 
 
 /* Base-formatting for tiles inside .grid */
 .grid {
   font-size:        calc(var(--tileHt) * 0.79);
+  border-spacing:   3%;
 }
 .flip-inner {
   overflow-x:       hidden;
   overflow-y:       hidden;
   
   position:         relative;
-  height:           var(--tileHt);
-  width:            var(--tileHt);
+  height:           calc(var(--tileHt) * 0.97);
+  width:            calc(var(--tileHt) * 0.97);
+  
   transition:       transform 0.4s ease-in-out;
   transform-style:  preserve-3d;
 }
@@ -60,7 +61,6 @@ td {     padding:     0px; }
   backface-visibility: hidden;
   
   border-radius:    15%;
-  box-sizing:       border-box;
 }
 .flip-inner div:first-child {
   z-index:          2;
@@ -102,7 +102,6 @@ td {     padding:     0px; }
 
 /* adds an outline to characters: */
 .grid div [class$='er'] {
-  /*border:           1.2px solid white;*/
   box-shadow: 0 0 0px 1.2px white inset;
 }
 
