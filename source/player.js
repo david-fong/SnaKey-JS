@@ -93,14 +93,14 @@ class Player {
     tile.key = playerFace;
     tile.seq = this.num;
     
-    Sounds.playEffect(Player.moveSounds);
+    SoundEffectss.playEffectFrom(Player.moveSounds);
     
     // Check if the player landed on a target:
     for (let i = 0; i < game.targets.length; i++) {
       // If the player landed on a target:
       if (dest.equals(game.targets[i])) {
         this.score += 1;
-        Sounds.playEffect(Player.eatSounds);
+        SoundEffects.playEffectFrom(Player.eatSounds);
         
         game.heat = game.numTargets * Math.sqrt(
           game.heat / game.numTargets + 1);
@@ -160,5 +160,5 @@ class Player {
     return counter;
   }
 }
-Player.moveSounds = Sounds.makeList('move', 9);
-Player.eatSounds  = Sounds.makeList('eat',  5);
+Player.moveSounds = SoundEffects.makeVariants('move', 9);
+Player.eatSounds  = SoundEffects.makeVariants('eat',  5, 0.3);

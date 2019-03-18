@@ -36,13 +36,13 @@ td {     padding:     0px;   }
 
 
 /* Base-formatting for tiles inside .grid */
-.grid {
-  font-size:        calc(var(--tileHt) * 0.79);
-  border-spacing:   3%;
-}
-.flip-inner {
+.grid { font-size:  calc(var(--tileHt) * 0.79); }
+.grid td {
+  margin:           3%;
   overflow-x:       hidden;
   overflow-y:       hidden;
+}
+.flip-inner {
   
   position:         relative;
   height:           calc(var(--tileHt) * 0.97);
@@ -59,7 +59,6 @@ td {     padding:     0px;   }
   height:           100%;
   width:            100%;
   backface-visibility: hidden;
-  
   border-radius:    15%;
 }
 .flip-inner div:first-child {

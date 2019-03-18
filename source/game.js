@@ -42,7 +42,7 @@ function weightedChoice(weights) {
 var targetThinness = 72;
 var playerFace = ':|';
 var enemies = {
-  'chaser': ':>',
+  'chaser': ':><br>|||',
   'nommer': ':O',
   'runner': ':D',
 };
@@ -77,7 +77,7 @@ var enemies = {
  * improve character visibility
  * Spice button
  * Cookies for: name, high-score(score, misses), version.
- * music / sound effects
+ * music / sound effects: update bgmusic track-level in enemyBaseSpeed.
  */
 class Game {
   constructor(width=20, numPlayers=1) {
@@ -603,7 +603,7 @@ class Game {
    * compresses the effect of the input.
    */
   enemyBaseSpeed(curveDown=0) {
-    let scores = this.players.reduce((a, b) => { return a + b.score; }, 0);
+    let scores = this.players.reduce((a, b) => a + b.score, 0);
     let obtained = Math.pow(scores + (this.misses), 1-curveDown);
     
     let high = 1.5, low = 0.35;
