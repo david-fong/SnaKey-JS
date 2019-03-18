@@ -89,17 +89,17 @@ class Game {
     document.documentElement.style.setProperty('--width', width);
     
     // Initialize Table display:
-    let dGrid  = document.getElementById('grid');
+    const dGrid  = document.getElementById('grid');
     for (let y = 0; y < width; y++) {
       let row = dGrid.insertRow();
       
       for (let x = 0; x < width; x++) {
-        let cell = row.insertCell();
-        let fInner = document.createElement('div');
+        const cell = row.insertCell();
+        const fInner = document.createElement('div');
         fInner.className = 'flip-inner';
         
-        let front = document.createElement('div');
-        let back  = document.createElement('div');
+        const front = document.createElement('div');
+        const back  = document.createElement('div');
         this.grid.push(new Tile(new Pos(x, y), front, back));
 
         fInner.appendChild(front);
@@ -115,6 +115,7 @@ class Game {
     }
     
     window.onblur = () => this.togglePause('pause');
+    this.backgroundMusic = new BackgroundMusic(1); // TODO: update numTracks.
     this.makeUpperBar();
     this.makeLowerBar();
     
@@ -603,15 +604,18 @@ class Game {
    * compresses the effect of the input.
    */
   enemyBaseSpeed(curveDown=0) {
-    let scores = this.players.reduce((a, b) => a + b.score, 0);
+    let scores   = this.players.reduce((a, b) => a + b.score, 0);
     let obtained = Math.pow(scores + (this.misses), 1-curveDown);
     
-    let high = 1.5, low = 0.35;
-    let defaultNumTargets = 20 * 20 / targetThinness;
-    let slowness = 25 * defaultNumTargets;
+    let high  = 1.5, low = 0.35;
+    // Scalar multiple of the default number of targets:
+    let slowness = 25 * (20 * 20 / targetThinness);
+    let exp   = Math.pow(obtained / slowness, 2);
+    let speed = (high - low) * (1 - Math.pow(2, -exp)) + low;
     
-    let exp = Math.pow(obtained / slowness, 2);
-    return (high - low) * (1 - Math.pow(2, -exp)) + low;
+    // Update the music track level and return speed:
+    this.backgroundMusic.updateTrackLevel(speed, low, high);
+    return speed;
   }
   
   // 
@@ -690,12 +694,14 @@ class Game {
     // The player pressed the pause button:
     if (this.pauseButton.innerHTML == 'pause') {
       this.pauseButton.innerHTML = 'unpause';
+      this.backgroundMusic.pause();
       document.body.style.filter = 'var(--pauseFilter)';
       document.body.onkeydown    = () => {};
       
     // The user pressed the un-pause button:
     } else {
       this.pauseButton.innerHTML = 'pause';
+      this.backgroundMusic.play();
       document.body.style.filter = '';
       document.body.onkeydown = () => this.movePlayer(event);
       this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);

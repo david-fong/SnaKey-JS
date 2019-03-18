@@ -93,7 +93,7 @@ class Player {
     tile.key = playerFace;
     tile.seq = this.num;
     
-    SoundEffectss.playEffectFrom(Player.moveSounds);
+    SoundEffects.playEffectFrom(Player.moveSounds);
     
     // Check if the player landed on a target:
     for (let i = 0; i < game.targets.length; i++) {

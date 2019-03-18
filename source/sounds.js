@@ -14,7 +14,6 @@ class SoundEffects {
       variant.volume = volume;
       variants.push(variant);
     }
-    console.log(variants, variants.length);
     return variants;
   }
   
@@ -37,7 +36,6 @@ class SoundEffects {
         console.error(error);
       })
     }
-    
     // Shuffle that sound back into the list:
     let insertAt = Math.floor(variants.length * Math.random());
     variants.splice(insertAt, 0, last, first);
@@ -53,27 +51,44 @@ class BackgroundMusic {
    */
   constructor(numTracks) {
     // Create a <numTracks>-long list of track filenames:
-    tracks   = [];
+    let tracks   = [];
     let path = 'assets/sounds/background_music/';
-    for (let i = 0; i < numTracks; i ++) {
-      tracks.push(path + i + '.wav');
+    for (let i = 0; i < numTracks; i++) {
+      tracks.push(path + i + '.mp3');
     }
     
     // Initialize fields:
-    this.numTracks = numTracks;
-    this.level = 0;
+    this.level   = 0;
     this.tracks  = tracks.map(filename => {
       let track  = new Audio(filename);
       track.loop = true;
+      return track;
     });
   }
   
+  /* Starts playing all tracks together.
+   */
   play() {
-    // TODO:
+    for (let track of this.tracks) {
+      let promise = track.play();
+      
+      if (promise !== undefined) {
+        promise.then(_ => {
+          // Playback started.
+        }).catch(error => {
+          // Playback failed:
+          console.error(error);
+        })
+      }
+    }
   }
   
+  /* Causes all tracks to stop playing.
+   */
   pause() {
-    // TODO:
+    for (let track of this.tracks) {
+      track.pause();
+    }
   }
   
   /* Checks if the given input should change
@@ -106,4 +121,6 @@ class BackgroundMusic {
     // TODO: check that the tracks are aligned time-wise:
     
   }
+  
+  get numTracks() { return this.tracks.length; }
 }
