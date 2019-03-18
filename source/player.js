@@ -13,7 +13,6 @@
  * -- timeDeltas    : array[number]
  */
 class Player {
-    
   constructor(game, num) {
     this.game   = game;
     this.num    = num;
@@ -161,5 +160,5 @@ class Player {
     return counter;
   }
 }
-Player.moveSounds = Sounds.makeList('move', 1);
+Player.moveSounds = Sounds.makeList('move', 9);
 Player.eatSounds  = Sounds.makeList('eat',  5);
