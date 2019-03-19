@@ -32,8 +32,8 @@ class SoundEffects {
       promise.then(_ => {
         // Playback started.
       }).catch(error => {
-        // Playback failed:
-        console.error(error);
+        // Playback failed (ignore):
+        // console.error(error);
       })
     }
     // Shuffle that sound back into the list:
@@ -62,6 +62,7 @@ class BackgroundMusic {
     this.tracks  = tracks.map(filename => {
       let track  = new Audio(filename);
       track.loop = true;
+      track.volume = 0.7;
       return track;
     });
   }
@@ -76,8 +77,8 @@ class BackgroundMusic {
         promise.then(_ => {
           // Playback started.
         }).catch(error => {
-          // Playback failed:
-          console.error(error);
+          // Playback failed (ignore):
+          // console.error(error);
         })
       }
     }

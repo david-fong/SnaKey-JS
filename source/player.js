@@ -90,7 +90,7 @@ class Player {
     game.populations[tile.key]--;
     this.pos = dest;
     tile.coloring = 'player';
-    tile.key = playerFace;
+    tile.key = Game.playerFace;
     tile.seq = this.num;
     
     SoundEffects.playEffectFrom(Player.moveSounds);

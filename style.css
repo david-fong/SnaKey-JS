@@ -88,19 +88,19 @@ td {     padding:     0px;   }
 
 
 /* Coloring for tiles */
-.tile, .hBarItem, .scoreTag { 
+div.tile, .hBarItem, .scoreTag { 
           background-color: var(--tileBg);
           color:            var(--tileFg);  }
-.target { background-color: var(--target);  }
-.player { background-color: var(--player);  }
-.trail  { background-color: var(--trailBg);
+div.target { background-color: var(--target);  }
+div.player { background-color: var(--player);  }
+div.trail  { background-color: var(--trailBg);
           color:            var(--trailFg); }
-.chaser { background-color: var(--chaser);  }
-.nommer { background-color: var(--nommer);  }
-.runner { background-color: var(--runner);  }
+div.chaser { background-color: var(--chaser);  }
+div.nommer { background-color: var(--nommer);  }
+div.runner { background-color: var(--runner);  }
 
 /* adds an outline to characters: */
-.grid div [class$='er'] {
+.grid div [class$='er'], div.target {
   box-shadow: 0 0 0px 1.2px white inset;
 }
 

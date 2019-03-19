@@ -38,14 +38,6 @@ function weightedChoice(weights) {
         '#entries: ' + weights.size + '. total weight: ' + totalWeight;
 }
 
-// Game base settings:
-var targetThinness = 72;
-var playerFace = ':|';
-var enemies = {
-  'chaser': ':><br>|||',
-  'nommer': ':O',
-  'runner': ':D',
-};
 
 /* Object keys:
  * -- width         : number - [10,30]
@@ -85,7 +77,7 @@ class Game {
     if (width > 30) width = 30;
     this.grid       = [];
     this.width      = width;
-    this.numTargets = Math.pow(this.width, 2) / targetThinness;
+    this.numTargets = Math.pow(this.width, 2) / Game.targetThinness;
     document.documentElement.style.setProperty('--width', width);
     
     // Initialize Table display:
@@ -120,7 +112,7 @@ class Game {
     this.makeLowerBar();
     
     // Setup invariants and then start the game:
-    for (let enemy in enemies) { this[enemy] = new Pos(); }
+    for (let enemy in Game.enemies) { this[enemy] = new Pos(); }
     this.pauseButton.innerHTML = 'unpause';
     this.restart();
   }
@@ -169,7 +161,7 @@ class Game {
     const row = lBar.insertRow();
     
     // Setup button displays:
-    for (let bName of ['restart', 'pause',]) {
+    for (let bName of ['restart', 'pause', 'spice']) {
       const btn = document.createElement('button');
       btn.className = 'hBarItem';
       this[bName + 'Button'] = btn;
@@ -180,6 +172,10 @@ class Game {
     // Assign callbacks to buttons:
     this.restartButton.onclick = () => this.restart();
     this.pauseButton.onclick   = () => this.togglePause();
+    this.spiceButton.onclick   = () => {
+      this.spiceButton.blur();
+      this.misses += 25;
+    }
     
     // Score displays:
     for (let player of this.players) {
@@ -236,10 +232,10 @@ class Game {
       player.moveOnto(new Pos(middle + player.num, middle));
     }
     
-    // Spawn enemies:
+    // Spawn Game.enemies:
     const slots = Pos.corners(this.width, Math.floor(this.width/10));
     slots.sort((a, b) => Math.random() - 0.5);
-    for (let enemy in enemies) {
+    for (let enemy in Game.enemies) {
       this.moveCharOnto(enemy, slots.shift());
     }
   }
@@ -508,7 +504,10 @@ class Game {
   }
   
   
-  // All enemy moves need to pass through this function:
+  /* All enemy moves need to pass through this function:
+   * Truncates moves to offsets by one and chooses
+   * diagonality.
+   */
   enemyDiffTrunc(origin, dest) {
     const diff = dest.sub(origin);
     // If there's no diagonal part, truncate and return:
@@ -579,7 +578,7 @@ class Game {
     
     const high  = 1.5, low = 0.35;
     // Scalar multiple of the default number of targets:
-    const slowness = 25 * (20 * 20 / targetThinness);
+    const slowness = 25 * (20 * 20 / Game.targetThinness);
     const exp   = Math.pow(obtained / slowness, 2);
     const speed = (high - low) * (1 - Math.pow(2, -exp)) + low;
     
@@ -588,7 +587,9 @@ class Game {
     return speed;
   }
   
-  // 
+  /* If a character does not eat targets,
+   * call with notHungry set to true.
+   */
   moveCharOffOf(character, notHungry) {
     const pos  = this[character];
     const tile = this.tileAt(pos);
@@ -619,7 +620,7 @@ class Game {
     this.populations[tile.key]--;
     this[character] = dest;
     tile.coloring   = character;
-    tile.key = enemies[character];
+    tile.key = Game.enemies[character];
     tile.seq = '<br>';
     
     // Check if a hungry character landed on a target:
@@ -637,7 +638,7 @@ class Game {
     }
   }
   
-  /* Freezes enemies and disables player movement.
+  /* Freezes Game.enemies and disables player movement.
    * Toggles the pause button to unpause on next click.
    */
   togglePause(force=undefined) {
@@ -655,8 +656,8 @@ class Game {
       return;
     }
     
+    // Freeze all the Game.enemies:
     const that = this;
-    // Freeze all the enemies:
     clearTimeout(that.chaserCancel);
     clearTimeout(that.nommerCancel);
     clearTimeout(that.runnerCancel);
@@ -694,4 +695,12 @@ class Game {
   get misses() {return parseInt(this.misses_.innerHTML);}
   set misses(val) {this.misses_.innerHTML = val;}
 }
+// Game base settings:
+Game.targetThinness = 72;
+Game.playerFace = ':|';
+Game.enemies = {
+  'chaser': ':>',
+  'nommer': ':O',
+  'runner': ':D',
+};
 
