@@ -49,7 +49,7 @@ class SoundEffects {
 class BackgroundMusic {
   /* Creates an object that can play background music.
    */
-  constructor(numTracks) {
+  constructor(numTracks, lb, ub) {
     // Create a <numTracks>-long list of track filenames:
     let tracks   = [];
     let path = 'assets/sounds/background_music/';
@@ -58,11 +58,14 @@ class BackgroundMusic {
     }
     
     // Initialize fields:
+    this.lb = lb;
+    this.ub = ub;
     this.level   = 0;
+    
     this.tracks  = tracks.map(filename => {
       let track  = new Audio(filename);
       track.loop = true;
-      track.volume = 0.7;
+      track.volume = 0.6;
       return track;
     });
   }
@@ -99,9 +102,11 @@ class BackgroundMusic {
    * Uses the principle of hysterisis to prevent
    * chattering when the input hovers around level-
    * changing values.
+   *
+   * input must be in the range [this.lb, this.ub].
    */
-  updateTrackLevel(input, lb, ub) {
-    let newLevel = this.numTracks * ((input - lb) / (ub - lb));
+  updateTrackLevel(input) {
+    let newLevel = this.numTracks * ((input - this.lb) / (this.ub - this.lb));
     let increase = newLevel > this.level;
     
     if (increase) {

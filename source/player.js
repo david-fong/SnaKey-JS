@@ -18,6 +18,7 @@ class Player {
     this.num    = num;
     this.pos    = new Pos();
     this.score_ = Player.makeScoreElement('score' + this.num);
+    this.score_.onchange = () => this.game.updateTrackLevel();
   }
   
   /* Resets all fields except position:
@@ -155,7 +156,8 @@ class Player {
     
     let counter = document.createElement('span');
     counter.dataset.player = labelText + ': ';
-    counter.className = 'scoreTag';
+    counter.className      = 'scoreTag';
+    counter.innerHTML      = 0;
     slot.appendChild(counter);
     return counter;
   }

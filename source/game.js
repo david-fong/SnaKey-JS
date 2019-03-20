@@ -99,6 +99,8 @@ class Game {
         cell.appendChild(fInner);
       }
     }
+    // TODO @ below: update numTracks.
+    this.backgroundMusic = new BackgroundMusic(4, Game.lowSpeed, Game.highSpeed);
     
     // Create players:
     this.players = [];
@@ -106,8 +108,8 @@ class Game {
       this.players.push(new Player(this, i));
     }
     
+    // Make menus:
     window.onblur = () => this.togglePause('pause');
-    this.backgroundMusic = new BackgroundMusic(1); // TODO: update numTracks.
     this.makeUpperBar();
     this.makeLowerBar();
     
@@ -144,7 +146,7 @@ class Game {
     for (let fileName of csFileNames) {
       const choice = document.createElement('option');
       choice.innerHTML = fileName.replace(/_/g, ' ');
-      choice.value     = 'source/colors/' + fileName + '.css';
+      choice.value = 'assets/colors/' + fileName + '.css';
       colorSel.add(choice);
     }
     colorSel.onchange  = () => {
@@ -182,6 +184,7 @@ class Game {
       row.insertCell().appendChild(player.score_.parentElement);
     }
     this.misses_ = Player.makeScoreElement('misses');
+    this.misses_.onchange = () => this.updateTrackLevel();
     row.insertCell().appendChild(this.misses_.parentElement);
   }
   
@@ -576,14 +579,14 @@ class Game {
     const scores   = this.players.reduce((a, b) => a + b.score, 0);
     const obtained = Math.pow(scores + (this.misses), 1-curveDown);
     
-    const high  = 1.5, low = 0.35;
     // Scalar multiple of the default number of targets:
     const slowness = 25 * (20 * 20 / Game.targetThinness);
     const exp   = Math.pow(obtained / slowness, 2);
-    const speed = (high - low) * (1 - Math.pow(2, -exp)) + low;
+    const speed = (Game.highSpeed - Game.lowSpeed) * 
+                  (1 - Math.pow(2, -exp)) + Game.lowSpeed;
     
     // Update the music track level and return speed:
-    this.backgroundMusic.updateTrackLevel(speed, low, high);
+    this.backgroundMusic.updateTrackLevel(speed);
     return speed;
   }
   
@@ -689,6 +692,9 @@ class Game {
     this.togglePause('pause');
   }
   
+  updateTrackLevel() {
+    this.backgroundMusic.updateTrackLevel(this.enemyBaseSpeed());
+  }
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
   isCharacter(tile) { return !(tile.key in this.language); }
   
@@ -703,4 +709,5 @@ Game.enemies = {
   'nommer': ':O',
   'runner': ':D',
 };
-
+Game.highSpeed = 1.5;
+Game.lowSpeed  = 0.35;
