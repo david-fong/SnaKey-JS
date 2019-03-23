@@ -17,8 +17,7 @@ class Player {
     this.game   = game;
     this.num    = num;
     this.pos    = new Pos();
-    this.score_ = Player.makeScoreElement('score' + this.num);
-    this.score_.onchange = () => this.game.updateTrackLevel();
+    this.score_ = game.makeScoreElement('score' + this.num);
   }
   
   /* Resets all fields except position:
@@ -149,18 +148,6 @@ class Player {
   // Accessors:
   get score()    { return parseInt(this.score_.innerHTML ); }
   set score(val) { this.score_.innerHTML = val;             }
-  
-  static makeScoreElement(labelText) {
-    let slot = document.createElement('div');
-    slot.className       = 'hBarItem';
-    
-    let counter = document.createElement('span');
-    counter.dataset.player = labelText + ': ';
-    counter.className      = 'scoreTag';
-    counter.innerHTML      = 0;
-    slot.appendChild(counter);
-    return counter;
-  }
 }
 Player.moveSounds = SoundEffects.makeVariants('move', 9);
 Player.eatSounds  = SoundEffects.makeVariants('eat',  5, 0.3);

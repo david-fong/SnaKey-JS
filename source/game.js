@@ -122,13 +122,12 @@ class Game {
   /* Makes language and color scheme select.
    */
   makeUpperBar() {
-    const ubar = document.getElementById('ubar');
-    const row = ubar.insertRow();
+    const bar = document.getElementById('lBar');
     
     // Language radiobutton drop-down:
-    const langSel = document.createElement('select');
-    langSel.className = 'hBarItem';
-    langSel.name = 'language';
+    const langSel      = document.createElement('select');
+    langSel.className  = 'menuItem';
+    langSel.name       = 'language';
     for (let lang in languages) {
       const choice = document.createElement('option');
       choice.innerHTML = lang;
@@ -136,39 +135,38 @@ class Game {
       langSel.add(choice);
     }
     langSel.value = 'eng';
-    row.insertCell().appendChild(langSel);
+    bar.appendChild(langSel);
     this.langSelect = langSel;
     
     // Coloring radiobutton drop-down:
-    const colorSel = document.createElement('select');
-    colorSel.className = 'hBarItem';
-    colorSel.name = 'coloring';
+    const colorSel     = document.createElement('select');
+    colorSel.className = 'menuItem';
+    colorSel.name      = 'coloring';
     for (let fileName of csFileNames) {
-      const choice = document.createElement('option');
+      const choice     = document.createElement('option');
       choice.innerHTML = fileName.replace(/_/g, ' ');
-      choice.value = 'assets/colors/' + fileName + '.css';
+      choice.value     = 'assets/colors/' + fileName + '.css';
       colorSel.add(choice);
     }
     colorSel.onchange  = () => {
       document.getElementById('coloring').href = colorSel.value;
     };
-    row.insertCell().appendChild(colorSel);
+    bar.appendChild(colorSel);
   }
   
   /* Creates restart and pause buttons,
    * and also score and misses counters.
    */
   makeLowerBar() {
-    const lBar = document.getElementById('lbar');
-    const row = lBar.insertRow();
+    const bar = document.getElementById('rBar');
     
     // Setup button displays:
     for (let bName of ['restart', 'pause', 'spice']) {
       const btn = document.createElement('button');
-      btn.className = 'hBarItem';
+      btn.className = 'menuItem';
       this[bName + 'Button'] = btn;
       btn.innerHTML = bName;
-      row.insertCell().appendChild(btn);
+      bar.appendChild(btn);
     }
     
     // Assign callbacks to buttons:
@@ -181,11 +179,10 @@ class Game {
     
     // Score displays:
     for (let player of this.players) {
-      row.insertCell().appendChild(player.score_.parentElement);
+      bar.appendChild(player.score_.parentElement);
     }
-    this.misses_ = Player.makeScoreElement('misses');
-    this.misses_.onchange = () => this.updateTrackLevel();
-    row.insertCell().appendChild(this.misses_.parentElement);
+    this.misses_ = this.makeScoreElement('misses');
+    bar.appendChild(this.misses_.parentElement);
   }
   
   /* Shuffles entire grid and resets scores.
@@ -449,7 +446,7 @@ class Game {
       player.pos.sub(this.runner).squareNorm() == 1 );
     if (caught() && !escape) {
       // TODO: Play the caught sound here:
-      this.misses = Math.floor(this.misses * 2 / 3);
+      this.misses = Math.floor(this.misses * 3 / 4);
     }
     
     let dest;
@@ -694,6 +691,20 @@ class Game {
   
   updateTrackLevel() {
     this.backgroundMusic.updateTrackLevel(this.enemyBaseSpeed());
+  }
+  makeScoreElement(labelText) {
+    let slot = document.createElement('div');
+    slot.className      = 'scoreTag';
+    slot.style.display    = 'flex';
+    slot.style.alignItems = 'center';
+    slot.style.justifyContent = 'center';
+    
+    let counter = document.createElement('span');
+    counter.dataset.player = labelText + ': ';
+    counter.innerHTML      = 0;
+    counter.onchange       = () => this.updateTrackLevel();
+    slot.appendChild(counter);
+    return counter;
   }
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
   isCharacter(tile) { return !(tile.key in this.language); }

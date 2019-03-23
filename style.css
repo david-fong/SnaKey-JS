@@ -1,6 +1,8 @@
+
+/* GENERAL */
 body {
 /*--width:        ; <- declared in game.js */
-  --tileHt:       calc(85vmin / var(--width));
+  --tileHt:       calc(87vmin / var(--width));
   --pauseFilter:  grayscale(100%) brightness(130%) contrast(60%);
   
   font:             90% Trebuchet MS;
@@ -19,31 +21,52 @@ body {
   background-color: var(--lines);
 }
 .vBars {
-  padding:          10px;
-  display:          grid;
-  grid-template-columns: 20% 60% 20%;
+  margin:           10px;
+  display:          flex;
+  justify-content:  space-around;
 }
-.lBar .rBar {  }
-.hBars {
+#lBar  { order: 0; }
+#rBar  { order: 2; }
+.hBars { order: 1; }
+
+
+
+/* MENUBARS */
+.menubar {
+  height:           100%;
+  width:            20%;
   display:          flex;
   flex-direction:   column;
-  align-items:      center;
+  align-items:      stretch;
 }
+.menuItem:disabled { filter: brightness(80%);  }
+.menuItem:hover    { filter: brightness(115%); }
+.menuItem, .scoreTag {
+  box-sizing:       border-box;
+  margin:           2.5px;
+  height:           5vmin;
+  border:           none;
+  border-radius:    0.3em;
+  
+  cursor:           pointer;
+  font:             inherit;
+}
+.scoreTag span::before { content: attr(data-player) }
 
-table { table-layout: fixed; } /*helps with rendering speed*/
-td {     padding:     0px;   }
 
 
-
-/* Base-formatting for tiles inside .grid */
-.grid { font-size:  calc(var(--tileHt) * 0.79); }
-.grid td {
-  margin:           3%;
+/* GRID & TILES */
+.grid {
+  table-layout:     fixed; /* helps with rendering speed */
+  font-size:        calc(var(--tileHt) * 0.80);
+  border-spacing:   calc(var(--tileHt) * 0.06);
+}
+.grid > td {
+  padding:          0px;
   overflow-x:       hidden;
   overflow-y:       hidden;
 }
 .flip-inner {
-  
   position:         relative;
   height:           calc(var(--tileHt) * 0.97);
   width:            calc(var(--tileHt) * 0.97);
@@ -70,37 +93,20 @@ td {     padding:     0px;   }
 
 
 
-/* Horizontal Bars and their Items: */
-.tBar, .bBar       { height: 5vmin; box-sizing: border-box; }
-.hBarItem:disabled { filter: brightness(80%);  }
-.hBarItem:hover    { filter: brightness(115%); }
-.hBarItem, .scoreTag {
-  height:           inherit;
-  width:            7em;
-  border:           none;
-  border-radius:    0.3em;
-  
-  cursor:           pointer;
-  font:             inherit;
-}
-.scoreTag::before { content: attr(data-player) }
-
-
-
-/* Coloring for tiles */
-div.tile, .hBarItem, .scoreTag { 
-          background-color: var(--tileBg);
-          color:            var(--tileFg);  }
+/* TILE COLORING */
+div.tile, .menuItem, .scoreTag { 
+             background-color: var(--tileBg);
+             color:            var(--tileFg);  }
 div.target { background-color: var(--target);  }
 div.player { background-color: var(--player);  }
 div.trail  { background-color: var(--trailBg);
-          color:            var(--trailFg); }
+             color:            var(--trailFg); }
 div.chaser { background-color: var(--chaser);  }
 div.nommer { background-color: var(--nommer);  }
 div.runner { background-color: var(--runner);  }
 
 /* adds an outline to characters: */
 .grid div [class$='er'], div.target {
-  box-shadow: 0 0 0px 1.2px white inset;
+  box-shadow: 0 0 0px 0.08em white inset;
 }
 

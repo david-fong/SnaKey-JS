@@ -35,21 +35,19 @@
   <body style='margin:0px;'>
     <div class='background'></div>
     
-    <div class='vBars'>
-      <!-- Left sidebar for OPTIONS & TUTORIAL -->
-      <div id='lBar' class='lBar'></div>
+    <main class='vBars'>
+      <!-- Left  sidebar for OPTIONS & TUTORIAL -->
+      <div id='lBar' class='menubar'>options & tutorial</div>
+      
+      <!-- Right sidebar for CONTROLS & SCORING -->
+      <div id='rBar' class='menubar'>controls & score</div>
       
       <!-- Middle frame for ACTUAL GAME -->
-      <main class='hBars'>
-        <table id='ubar' class='ubar'></table>
+      <div class='hBars'>
         <table id='grid' class='grid'></table>
-        <table id='lbar' class='lbar'></table>
         <div style='opacity:0.4;'>© David Fong 2019</div>
-      </main>
-      
-      <!-- Right sidebar for SCORING INFO -->
-      <div id='rBar' class='rBar'></div>
-    </div>
+      </div>
+    </main>
     
     <!-- Run Game Code: -->
     <script>
