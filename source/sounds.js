@@ -61,20 +61,22 @@ class BackgroundMusic {
     this.lb = lb;
     this.ub = ub;
     this.level = 0;
+    this.numTracks = numTracks;
     
-    this.tracks  = tracks.map(filename => {
-      let track  = new Audio(filename);
-      track.loop = true;
+    this.tracks = tracks.map(filename => {
+      let track    = new Audio(filename);
+      track.loop   = true;
       track.volume = 0.6;
+      track.muted  = true;
       track.addEventListener('timeupdate', () => {
         let buffer = 0.26;
-        console.log(track.currentTime);
         if (track.currentTime > track.duration - buffer) {
           track.currentTime = 0;
         }
       });
       return track;
     });
+    this.tracks[0].muted = false;
   }
   
   /* Starts playing all tracks together.
@@ -110,31 +112,33 @@ class BackgroundMusic {
    * chattering when the input hovers around level-
    * changing values.
    *
-   * input must be in the range [this.lb, this.ub].
+   * input must be in the range [this.lb, this.ub).
    */
   updateTrackLevel(input) {
-    let newLevel = this.numTracks * ((input - this.lb) / (this.ub - this.lb));
-    let increase = newLevel > this.level;
+    // Map input to corresponding new track-level:
+    let newLevel = ((input - this.lb) / (this.ub - this.lb) *
+        this.numTracks / BackgroundMusic.fullTrackPercent);
+    const increase = newLevel > this.level;
     
-    // Unmute tracks up to floor(newLevel):
+    if (increase) newLevel = Math.round(newLevel);
+    else          newLevel = Math.ceil( newLevel);
+    if (newLevel >= this.numTracks) newLevel = this.numTracks - 1;
+    if (newLevel == this.level) return;
+    
+    // Unmute tracks up to round(newLevel):
     if (increase) {
-      newLevel = Math.floor(newLevel);
-      for (let i = this.level; i <= newLevel; i++) {
+      for (let i = this.level + 1; i <= newLevel; i++)
         this.tracks[i].muted = false;
-      }
       
-    // Mute tracks down to round(newLevel):
+    // Mute tracks down to just above ceil(newLevel):
     } else {
-      newLevel = Math.round(newLevel);
-      if (newLevel == this.numTracks) return;
-      for (let i = this.numTracks - 1; i > newLevel; i--) {
+      for (let i = this.numTracks - 1; i > newLevel; i--)
         this.tracks[i].muted = true;
-      }
     }
     
+    this.level = newLevel;
     // TODO: check that the tracks are aligned time-wise:
     
   }
-  
-  get numTracks() { return this.tracks.length; }
 }
+BackgroundMusic.fullTrackPercent = 0.25;

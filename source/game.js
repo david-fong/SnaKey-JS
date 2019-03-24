@@ -63,6 +63,7 @@ function weightedChoice(weights) {
  * change gameover condition to when all players are dead.
  * 
  * Cookies for: name, high-score(score, misses), version.
+ * make game runner_catch and gameover sounds.
  * upload new background tracks and change updateTrackLevel to use arctan.
  * get rid of gaps in the background music loop.
  */
@@ -97,7 +98,7 @@ class Game {
     }
     // TODO @ below: update numTracks.
     this.backgroundMusic = new BackgroundMusic(
-      4, Game.lowSpeed, Game.highSpeed
+      12, Game.lowSpeed, Game.highSpeed
     );
     
     // Create players:

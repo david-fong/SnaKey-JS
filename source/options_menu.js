@@ -39,11 +39,12 @@ function makeOptionsMenu(parentElement) {
   '   your misses will be cut down by a third.',
 
   '12. If you find the game too easy, press the<br>' +
-  '   spice button to boost the chaser\'s speed.'
+  '   spice button to boost the chaser\'s speed.',
+  'tutorial',
   ];
   let tutorial = document.createElement('div');
   tutorial.className  = 'tutorial menuItem';
-  tutorial.pageNumber = 0;
+  tutorial.pageNumber = messages.length - 2;
   const pages = [];
   for (let i = 0; i < messages.length; i++) {
     let page = document.createElement('div');
@@ -52,12 +53,19 @@ function makeOptionsMenu(parentElement) {
     tutorial.appendChild(page);
   }
   tutorial.onclick = () => {
-    pages[tutorial.pageNumber].style.display = '';
-    tutorial.pageNumber++;
-    tutorial.pageNumber %= messages.length;
-    pages[tutorial.pageNumber].style.display = 'initial';
+    pages.slice(-1)[0].style.display = '';
+    const shuffle = () => {
+      pages[tutorial.pageNumber].style.display = '';
+      tutorial.pageNumber++;
+      tutorial.pageNumber %= messages.length - 1;
+      pages[tutorial.pageNumber].style.display = 'initial';
+    }
+    shuffle();
+    tutorial.onclick = shuffle;
   }
-  pages[0].style.display = 'initial';
+  const cover = pages.slice(-1)[0].style;
+  cover.display = 'initial';
+  cover.textDecoration = 'underline';
   parentElement.appendChild(tutorial);
   
   
