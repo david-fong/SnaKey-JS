@@ -1,9 +1,7 @@
 
 /* GENERAL */
 body {
-/*--width:        ; <- declared in game.js */
-  --tileHt:       calc(87vmin / var(--width));
-  --pauseFilter:  grayscale(100%) brightness(130%) contrast(60%);
+  --pauseFilter:    grayscale(100%) brightness(130%) contrast(60%);
   
   font:             90% Trebuchet MS;
   text-align:       center;
@@ -41,12 +39,16 @@ body {
 }
 .menuItem:disabled { filter: brightness(80%);  }
 .menuItem:hover    { filter: brightness(115%); }
-.menuItem, .scoreTag {
+.menuItem {
   box-sizing:       border-box;
   margin:           2.5px;
-  height:           5vmin;
+  height:           5vh;
   border:           none;
   border-radius:    0.3em;
+  
+  display:          flex;
+  align-items:      center;
+  justify-content:  center;
   
   cursor:           pointer;
   font:             inherit;
@@ -57,9 +59,12 @@ body {
 
 /* GRID & TILES */
 .grid {
+/*--width-in-tiles: ; <- declared in game.js */
+  --tileHt:         calc(87vmin / var(--width-in-tiles));
+  
   table-layout:     fixed; /* helps with rendering speed */
-  font-size:        calc(var(--tileHt) * 0.80);
-  border-spacing:   calc(var(--tileHt) * 0.06);
+  font-size:        calc(var(--tileHt) * 0.800);
+  border-spacing:   calc(var(--tileHt) * 0.050);
 }
 .grid > td {
   padding:          0px;
@@ -94,7 +99,7 @@ body {
 
 
 /* TILE COLORING */
-div.tile, .menuItem, .scoreTag { 
+div.tile, .menuItem { 
              background-color: var(--tileBg);
              color:            var(--tileFg);  }
 div.target { background-color: var(--target);  }

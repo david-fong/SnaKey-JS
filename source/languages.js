@@ -22,8 +22,8 @@ jpn_r[16] = 'chi';
 jpn_r[17] = 'tsu';
 jpn_r[27] = 'fu';
 jpn_r[46] = 'ji';
-jpn_r[51] = 'dzi'; // TODO: double-check
-jpn_r[52] = 'dzu'; // TODO: double-check
+jpn_r[51] = 'ji';
+jpn_r[52] = 'zu';
 jpn_r.push('ya', 'yu', 'yo', 'wa', 'wo', 'n');
 // Setup Japanese Hiragana:
 [...'あいうえおかきくけこさしすせそ',

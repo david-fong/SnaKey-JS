@@ -44,8 +44,6 @@ function weightedChoice(weights) {
  * -- numTargets    : number
  * -- populations   : object{string: number}
  * -- grid          : array[Tile]
- *
- * -- langSelect    : <select>
  * -- language      : object{string: string}
  *
  * -- restartButton : <button>
@@ -61,15 +59,12 @@ function weightedChoice(weights) {
  *
  *
  * TODO:
- * change sidebars into floating div's.
- * move options to left side.
- * move scoring to right side.
+ * work on tutorial pane
+ * change gameover condition to when all players are dead.
  * 
- * control border-spacing of grid elements during resize.
- * improve character visibility
- * Spice button
  * Cookies for: name, high-score(score, misses), version.
- * music / sound effects: update bgmusic track-level in enemyBaseSpeed.
+ * upload new background tracks and change updateTrackLevel to use arctan.
+ * get rid of gaps in the background music loop.
  */
 class Game {
   constructor(width=20, numPlayers=1) {
@@ -78,20 +73,21 @@ class Game {
     this.grid       = [];
     this.width      = width;
     this.numTargets = Math.pow(this.width, 2) / Game.targetThinness;
-    document.documentElement.style.setProperty('--width', width);
+    //document.documentElement.style.setProperty('--width', width);
     
     // Initialize Table display:
-    const dGrid  = document.getElementById('grid');
+    const dGrid = document.getElementById('grid');
+    dGrid.style.setProperty('--width-in-tiles', width);
     for (let y = 0; y < width; y++) {
       let row = dGrid.insertRow();
       
       for (let x = 0; x < width; x++) {
-        const cell = row.insertCell();
+        const cell   = row.insertCell();
         const fInner = document.createElement('div');
         fInner.className = 'flip-inner';
         
-        const front = document.createElement('div');
-        const back  = document.createElement('div');
+        const front  = document.createElement('div');
+        const back   = document.createElement('div');
         this.grid.push(new Tile(new Pos(x, y), front, back));
 
         fInner.appendChild(front);
@@ -100,7 +96,9 @@ class Game {
       }
     }
     // TODO @ below: update numTracks.
-    this.backgroundMusic = new BackgroundMusic(4, Game.lowSpeed, Game.highSpeed);
+    this.backgroundMusic = new BackgroundMusic(
+      4, Game.lowSpeed, Game.highSpeed
+    );
     
     // Create players:
     this.players = [];
@@ -110,48 +108,13 @@ class Game {
     
     // Make menus:
     window.onblur = () => this.togglePause('pause');
-    this.makeUpperBar();
+    makeOptionsMenu(document.getElementById('lBar'));
     this.makeLowerBar();
     
     // Setup invariants and then start the game:
     for (let enemy in Game.enemies) { this[enemy] = new Pos(); }
     this.pauseButton.innerHTML = 'unpause';
     this.restart();
-  }
-  
-  /* Makes language and color scheme select.
-   */
-  makeUpperBar() {
-    const bar = document.getElementById('lBar');
-    
-    // Language radiobutton drop-down:
-    const langSel      = document.createElement('select');
-    langSel.className  = 'menuItem';
-    langSel.name       = 'language';
-    for (let lang in languages) {
-      const choice = document.createElement('option');
-      choice.innerHTML = lang;
-      choice.value     = lang;
-      langSel.add(choice);
-    }
-    langSel.value = 'eng';
-    bar.appendChild(langSel);
-    this.langSelect = langSel;
-    
-    // Coloring radiobutton drop-down:
-    const colorSel     = document.createElement('select');
-    colorSel.className = 'menuItem';
-    colorSel.name      = 'coloring';
-    for (let fileName of csFileNames) {
-      const choice     = document.createElement('option');
-      choice.innerHTML = fileName.replace(/_/g, ' ');
-      choice.value     = 'assets/colors/' + fileName + '.css';
-      colorSel.add(choice);
-    }
-    colorSel.onchange  = () => {
-      document.getElementById('coloring').href = colorSel.value;
-    };
-    bar.appendChild(colorSel);
   }
   
   /* Creates restart and pause buttons,
@@ -193,15 +156,16 @@ class Game {
     this.restartButton.blur();
     
     // Reset all display-key populations:
-    this.language = languages[this.langSelect.value];
+    const langSelect = document.getElementById('langSelect');
+    this.language = languages[langSelect.value];
     this.populations = {};
     for (let key in this.language) {
       this.populations[key] = 0;
     }
     
-    this.misses = 0;
     this.targets = [];
-    this.heat = 0;
+    this.misses  = 0;
+    this.heat    = 0;
     
     // Re-shuffle all tiles:
     for (let tile of this.grid) {
@@ -353,6 +317,12 @@ class Game {
   // TODO: this will need to somehow tell which player triggered the event.
   //   triggered by some incoming remote data package:
   movePlayer(event) {
+    // Check if a single player wants to pause or restart:
+    if (this.players.length == 1 && event.key === 'Enter') {
+      if (event.shiftKey) this.restart();
+      else this.togglePause();
+    }
+    
     if (!event.shiftKey) {
       this.players[0].move(event.key);
     } else {
@@ -694,10 +664,7 @@ class Game {
   }
   makeScoreElement(labelText) {
     let slot = document.createElement('div');
-    slot.className      = 'scoreTag';
-    slot.style.display    = 'flex';
-    slot.style.alignItems = 'center';
-    slot.style.justifyContent = 'center';
+    slot.className = 'menuItem scoreTag';
     
     let counter = document.createElement('span');
     counter.dataset.player = labelText + ': ';

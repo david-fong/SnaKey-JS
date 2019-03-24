@@ -60,12 +60,19 @@ class BackgroundMusic {
     // Initialize fields:
     this.lb = lb;
     this.ub = ub;
-    this.level   = 0;
+    this.level = 0;
     
     this.tracks  = tracks.map(filename => {
       let track  = new Audio(filename);
       track.loop = true;
       track.volume = 0.6;
+      track.addEventListener('timeupdate', () => {
+        let buffer = 0.26;
+        console.log(track.currentTime);
+        if (track.currentTime > track.duration - buffer) {
+          track.currentTime = 0;
+        }
+      });
       return track;
     });
   }
@@ -109,16 +116,17 @@ class BackgroundMusic {
     let newLevel = this.numTracks * ((input - this.lb) / (this.ub - this.lb));
     let increase = newLevel > this.level;
     
+    // Unmute tracks up to floor(newLevel):
     if (increase) {
       newLevel = Math.floor(newLevel);
-      // Unmute tracks up to floor(newLevel):
       for (let i = this.level; i <= newLevel; i++) {
         this.tracks[i].muted = false;
       }
+      
+    // Mute tracks down to round(newLevel):
     } else {
       newLevel = Math.round(newLevel);
       if (newLevel == this.numTracks) return;
-      // Mute tracks down to round(newLevel):
       for (let i = this.numTracks - 1; i > newLevel; i--) {
         this.tracks[i].muted = true;
       }
