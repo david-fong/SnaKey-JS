@@ -19,7 +19,7 @@ function makeOptionsMenu(parentElement) {
   
   // Tutorial:
   let messages = [
-  '0. Type the key for an adjacent tile to move.',
+  '0. Type the character in an adjacent tile to move.',
   '1. Mouse-over a tile to check what to type.',
   '2. You can also move in diagonals!',
 
@@ -42,13 +42,22 @@ function makeOptionsMenu(parentElement) {
   '   spice button to boost the chaser\'s speed.'
   ];
   let tutorial = document.createElement('div');
-  tutorial.className = 'tutorial menuItem';
+  tutorial.className  = 'tutorial menuItem';
+  tutorial.pageNumber = 0;
+  const pages = [];
   for (let i = 0; i < messages.length; i++) {
     let page = document.createElement('div');
     page.innerHTML = messages[i];
-    page.style.visibility = 'hidden';
+    pages.push(page);
     tutorial.appendChild(page);
   }
+  tutorial.onclick = () => {
+    pages[tutorial.pageNumber].style.display = '';
+    tutorial.pageNumber++;
+    tutorial.pageNumber %= messages.length;
+    pages[tutorial.pageNumber].style.display = 'initial';
+  }
+  pages[0].style.display = 'initial';
   parentElement.appendChild(tutorial);
   
   
