@@ -34,14 +34,15 @@ body {
   width:            20%;
   display:          flex;
   flex-direction:   column;
-  align-items:      stretch;
 }
 .menuItem:disabled { filter: brightness(80%);  }
 .menuItem:hover    { filter: brightness(115%); }
 .menuItem {
   box-sizing:       border-box;
   margin:           2.5px;
+  width:            100%;
   flex-basis:       5vh;
+  
   border:           none;
   border-radius:    0.3em;
   
@@ -52,7 +53,6 @@ body {
   cursor:           pointer;
   font:             inherit;
 }
-.scoreTag span::before { content: attr(data-player) }
 .tutorial {
   flex-basis:       40vh;
 }
@@ -60,6 +60,16 @@ body {
   display:          none;
   white-space:      pre;
   text-overflow:    clip;
+}
+.scoreTag span::before { content: attr(data-player) }
+.slider, progress {
+  -webkit-appearance: none;
+  -moz-appearance:  none;
+  outline:          none;
+}
+.slider::-webkit-slider-thumb, .slider::-moz-range-thumb {
+  -webkit-appearance: none;
+  
 }
 
 

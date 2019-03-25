@@ -45,9 +45,11 @@ function weightedChoice(weights) {
  * -- populations   : object{string: number}
  * -- grid          : array[Tile]
  * -- language      : object{string: string}
+ * -- speedScalar   : float
  *
  * -- restartButton : <button>
  * -- pauseButton   : <button>
+ * -- progressBar   : <input::range>
  *
  * -- targets       : array[Pos]
  * -- players       : array[Player]
@@ -59,12 +61,13 @@ function weightedChoice(weights) {
  *
  *
  * TODO:
- * work on tutorial pane
- * change gameover condition to when all players are dead.
+ * work on tutorial pane.
+ * update speedScalar on every reset from document.getElementById('difficulty');
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
  * set and interval to correct background track misalignments.
+ * some kind of fun easter egg if you type specific words.
  * get rid of gaps in the background music loop.
  */
 class Game {
@@ -136,6 +139,12 @@ class Game {
       this.misses += 25;
     }
     
+    // Progress bar slider:
+    const progress = document.createElement('progress');
+    progress.className = 'menuItem';
+    bar.appendChild(progress);
+    this.progressBar = progress;
+    
     // Score displays:
     for (let player of this.allPlayers) {
       bar.appendChild(player.score_.parentElement);
@@ -159,9 +168,9 @@ class Game {
       this.populations[key] = 0;
     }
     
-    this.targets = [];
-    this.misses  = 0;
-    this.heat    = 0;
+    this.misses_.innerHTML  = 0;
+    this.heat     = 0;
+    this.targets  = [];
     
     // Despawn all characters and re-shuffle all tiles:
     for (let tile of this.grid) {
@@ -187,9 +196,11 @@ class Game {
     this.spawnTargets();
     
     // Start the characters moving:
+    this.updateTrackLevel();
     this.togglePause('pause');
     this.togglePause('unpause');
     this.pauseButton.disabled = false;
+    this.spiceButton.disabled = false;
   }
   
   /* Shuffles the key in the tile at pos.
@@ -535,6 +546,8 @@ class Game {
    * score + misses as the input variable.
    * curveDown is in the rage [0, 1]. It
    * compresses the effect of the input.
+   * 
+   * Requires that this.livePlayers is not empty.
    */
   enemyBaseSpeed(curveDown=0) {
     const scores   = this.livePlayers.reduce((a, b) => a + b.score, 0) / 
@@ -660,18 +673,19 @@ class Game {
     // If all players are dead, end
     // the game and wait for a restart:
     if (this.livePlayers.length == 0) {
-      this.updateTrackLevel(0);
       this.pauseButton.disabled = true;
+      this.spiceButton.disabled = true;
       this.togglePause('pause');
     }
   }
   
   updateTrackLevel() {
     const progress = (
-      this.enemyBaseSpeed() - Game.lowSpeed) / 
-      (Game.highSpeed - Game.lowSpeed
+      (this.enemyBaseSpeed() - Game.lowSpeed) / 
+      (Game.highSpeed - Game.lowSpeed)
     );
     this.backgroundMusic.updateTrackLevel(progress);
+    this.progressBar.value = progress;
   }
   makeScoreElement(labelText) {
     let slot = document.createElement('div');
@@ -680,7 +694,6 @@ class Game {
     let counter = document.createElement('span');
     counter.dataset.player = labelText + ': ';
     counter.innerHTML = 0;
-    counter.onchange  = () => this.updateTrackLevel();
     slot.appendChild(counter);
     return counter;
   }
@@ -688,7 +701,10 @@ class Game {
   isCharacter(tile) { return !(tile.key in this.language); }
   
   get misses() {return parseInt(this.misses_.innerHTML);}
-  set misses(val) {this.misses_.innerHTML = val;}
+  set misses(val) {
+    this.misses_.innerHTML = val;
+    this.updateTrackLevel();
+  }
 }
 // Game base settings:
 Game.targetThinness = 72;

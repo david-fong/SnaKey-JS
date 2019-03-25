@@ -24,7 +24,7 @@ class Player {
   /* Resets all fields including position:
    */
   restart() {
-    this.score      = 0;
+    this.score_.innerHTML = 0;
     this.trail      = [];
     this.moveStr    = '';
     let date        = new Date();
@@ -186,7 +186,10 @@ class Player {
   
   // Accessors:
   get score()    { return parseInt(this.score_.innerHTML ); }
-  set score(val) { this.score_.innerHTML = val;             }
+  set score(val) {
+    this.score_.innerHTML = val;
+    this.game.updateTrackLevel();
+  }
 }
 Player.playerFace = ':|';
 Player.moveSounds = SoundEffects.makeVariants('move', 9);

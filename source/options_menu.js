@@ -69,6 +69,15 @@ function makeOptionsMenu(parentElement) {
   parentElement.appendChild(tutorial);
   
   
+  // Difficulty: TODO
+  const difficulty = document.createElement('input');
+  difficulty.type = 'range';
+  difficulty.id   = 'difficulty';
+  difficulty.innerHTML = 'difficulty:';
+  difficulty.className = 'menuItem slider';
+  parentElement.appendChild(difficulty);
+  
+  
   // Language:
   const langSel     = document.createElement('select');
   langSel.id        = 'langSelect';
