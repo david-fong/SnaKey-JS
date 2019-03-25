@@ -64,7 +64,7 @@ function weightedChoice(weights) {
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
- * upload new background tracks and change updateTrackLevel to use arctan.
+ * set and interval to correct background track misalignments.
  * get rid of gaps in the background music loop.
  */
 class Game {
@@ -74,7 +74,6 @@ class Game {
     this.grid       = [];
     this.width      = width;
     this.numTargets = Math.pow(this.width, 2) / Game.targetThinness;
-    //document.documentElement.style.setProperty('--width', width);
     
     // Initialize Table display:
     const dGrid = document.getElementById('grid');
@@ -97,16 +96,12 @@ class Game {
       }
     }
     // TODO @ below: update numTracks.
-    this.backgroundMusic = new BackgroundMusic(
-      12, Game.lowSpeed, Game.highSpeed
-    );
-    
+    this.backgroundMusic = new BackgroundMusic(12);
     // Create players:
-    this.players = [];
+    this.allPlayers = [];
     for (let i = 0; i < numPlayers; i++) {
-      this.players.push(new Player(this, i));
+      this.allPlayers.push(new Player(this, i));
     }
-    
     // Make menus:
     window.onblur = () => this.togglePause('pause');
     makeOptionsMenu(document.getElementById('lBar'));
@@ -142,7 +137,7 @@ class Game {
     }
     
     // Score displays:
-    for (let player of this.players) {
+    for (let player of this.allPlayers) {
       bar.appendChild(player.score_.parentElement);
     }
     this.misses_ = this.makeScoreElement('misses');
@@ -168,7 +163,7 @@ class Game {
     this.misses  = 0;
     this.heat    = 0;
     
-    // Re-shuffle all tiles:
+    // Despawn all characters and re-shuffle all tiles:
     for (let tile of this.grid) {
       tile.key = ' ';
       tile.seq = '<br>';
@@ -178,31 +173,23 @@ class Game {
       this.shuffle(tile.pos);
     }
     
-    // After spawing characters, spawn targets:
-    for (let player of this.players) { player.restart(); }
-    this.spawnCharacters();
+    // Spawn players:
+    this.livePlayers = this.allPlayers.slice();
+    for (let player of this.allPlayers) { player.restart(); }
+    
+    // Spawn enemies:
+    const slots = Pos.corners(this.width, Math.floor(this.width/10));
+    slots.sort((a, b) => Math.random() - 0.5);
+    for (let enemy in Game.enemies) {
+      this.moveEnemyOnto(enemy, slots.shift());
+    }
+    // Spawn targets:
     this.spawnTargets();
     
     // Start the characters moving:
     this.togglePause('pause');
     this.togglePause('unpause');
     this.pauseButton.disabled = false;
-  }
-  
-  // Only used as a helper method in restart().
-  spawnCharacters() {
-    // Spawn the players:
-    const middle = Math.floor(this.width / 2);
-    for (let player of this.players) {
-      player.moveOnto(new Pos(middle + player.num, middle));
-    }
-    
-    // Spawn Game.enemies:
-    const slots = Pos.corners(this.width, Math.floor(this.width/10));
-    slots.sort((a, b) => Math.random() - 0.5);
-    for (let enemy in Game.enemies) {
-      this.moveCharOnto(enemy, slots.shift());
-    }
   }
   
   /* Shuffles the key in the tile at pos.
@@ -266,12 +253,12 @@ class Game {
     
     const weights = new Map();
     for (let chPos of choices) {
-      const playersWeight = this.players.map((player) => {
+      const playersWeight = this.livePlayers.map((player) => {
         return bell(player.pos, chPos, 1 / 3);
       });
       weights.set(chPos, 
         5/3 * bell(center, chPos, 0.8) +
-        (playersWeight.reduce((a, b) => a + b, 0) / this.players.length) + 
+        (playersWeight.reduce((a, b) => a + b, 0) / this.livePlayers.length) + 
         bell(this.nommer, chPos, 1/3)
       );
     }
@@ -308,8 +295,11 @@ class Game {
       nbTile => nbTile.key in this.language);
   }
   
-  closestPlayer(origin) {
-    const players = this.players.slice();
+  /* Returns the Player object closest in
+   * position to origin square-norm-wise.
+   */
+  closestPlayerTo(origin) {
+    const players = this.livePlayers.slice();
     const dist = (player) => player.pos.sub(origin).squareNorm();
     players.sort((a, b) => dist(a) - dist(b));
     return players[0];
@@ -319,15 +309,17 @@ class Game {
   //   triggered by some incoming remote data package:
   movePlayer(event) {
     // Check if a single player wants to pause or restart:
-    if (this.players.length == 1 && event.key === 'Enter') {
+    if (this.allPlayers.length == 1 && event.key == 'Enter') {
       if (event.shiftKey) this.restart();
       else this.togglePause();
+    } else if (this.pauseButton.innerHTML == 'unpause') {
+      return;
     }
     
     if (!event.shiftKey) {
-      this.players[0].move(event.key);
-    } else {
-      this.players[1].move(event.key);
+      this.allPlayers[0].move(event.key);
+    } else if (this.allPlayers.length > 1) {
+      this.allPlayers[1].move(event.key);
     }
   }
   
@@ -337,10 +329,10 @@ class Game {
    * moving quickly and have a trail.
    */
   moveChaser() {
-    this.moveCharOffOf('chaser', true);
+    this.moveEnemyOffOf('chaser', true);
     
     // Choose a player to target:
-    const tgPlayer = this.closestPlayer(this.chaser);
+    const tgPlayer = this.closestPlayerTo(this.chaser);
     const speed    = this.enemyBaseSpeed();
     let   dest     = tgPlayer.pos;
     
@@ -351,20 +343,19 @@ class Game {
     weights.set(false, 1);
     weights.set(true,  Math.pow(maxMissWeight, 1 - power));
     
-    if (weightedChoice(weights) && tgPlayer.trail.length > 0) {
-      dest = tgPlayer.trail[tgPlayer.trail.length-1];
+    // Miss:
+    if (weightedChoice(weights)) {
+      dest = tgPlayer.trail.slice(-1)[0];
       
-    // Handle if the chaser would land on the player:
-    } else if ((this.chaser.sub(tgPlayer.pos)).squareNorm() == 1) {
-      this.moveCharOffOf('chaser', true);
-      this.tileAt(tgPlayer.pos).coloring = 'chaser';
-      this.gameOver();
+    // Handle if the chaser can catch the player:
+    } else if (this.chaser.sub(dest).squareNorm() == 1) {
+      this.killPlayer(tgPlayer);
       return;
     }
     
     // Execute the move:
     dest = this.enemyDest(this.chaser, dest);
-    this.moveCharOnto('chaser', dest);
+    this.moveEnemyOnto('chaser', dest);
     
     // Setup the timed loop:
     const loop = this.moveChaser.bind(this);
@@ -378,11 +369,11 @@ class Game {
    * as the nommer moves.
    */
   moveNommer() {
-    this.moveCharOffOf('nommer');
+    this.moveEnemyOffOf('nommer');
     let targets = this.targets.slice();
     
     // Get all targets exluding the third which are closest to the players:
-    let prox = (tgPos) => Math.min(...this.players.map(
+    let prox = (tgPos) => Math.min(...this.livePlayers.map(
       (player) => player.pos.sub(tgPos).squareNorm() ));
     targets.sort((a, b) => prox(a) - prox(b));
     targets = targets.slice(Math.floor(targets.length / 3));
@@ -397,7 +388,7 @@ class Game {
     
     // Execute the move:
     dest = this.enemyDest(this.nommer, dest);
-    this.moveCharOnto('nommer', dest, true);
+    this.moveEnemyOnto('nommer', dest, true);
     
     // Setup the timed loop:
     const loop = this.moveNommer.bind(this);
@@ -410,10 +401,10 @@ class Game {
    * ion of distance from the player.
    */
   moveRunner(escape=false) {
-    this.moveCharOffOf('runner', true);
+    this.moveEnemyOffOf('runner', true);
     
     // First, handle if the runner was caught:
-    const caught = () => this.players.some((player) =>
+    const caught = () => this.livePlayers.some((player) =>
       player.pos.sub(this.runner).squareNorm() == 1 );
     if (caught() && !escape) {
       // TODO: Play the caught sound here:
@@ -421,10 +412,10 @@ class Game {
     }
     
     let dest;
-    let closestPlayer = this.closestPlayer(this.runner).pos;
+    let closestPlayer = this.closestPlayerTo(this.runner).pos;
     
     // If the runner is a safe distance from the player:
-    if (this.runner.sub(closestPlayer).norm() >= this.width / 3) {
+    if (this.runner.sub(closestPlayer).norm() >= this.width / 2.5) {
       // Follow the chaser and bias away from the nommer:
       let fromNommer = this.runner.sub(this.nommer);
       fromNommer = fromNommer.mul(this.width/9/fromNommer.norm());
@@ -443,12 +434,12 @@ class Game {
     
     // Execute the move:
     dest = this.enemyDest(this.runner, dest);
-    this.moveCharOnto('runner', dest);
+    this.moveEnemyOnto('runner', dest);
     
     // Calculate how fast the runner should move:
-    closestPlayer = this.closestPlayer(this.runner).pos;
+    closestPlayer = this.closestPlayerTo(this.runner).pos;
     const speedup = 2.94; // The maximum frequency multiplier.
-    const power   = 5.5; // Increasing this shrinks high-urgency range.
+    const power   = 5.8; // Increasing this shrinks high-urgency range.
     const dist    = dest.sub(closestPlayer).squareNorm();
     let   urgency = Math.pow((this.width + 1 - dist) / this.width, power);
     urgency = urgency * (speedup - 1) + 1;
@@ -458,18 +449,20 @@ class Game {
     this.runnerCancel = setTimeout(loop, 1000 / urgency);
   }
   cornerStrat1() {
-    let corners = Pos.corners(this.width, Math.floor(this.width / 8));
+    let corners = Pos.corners(this.width, Math.floor(this.width / 7));
     
     // Exclude the closest and furthest corners from the closest player:
-    const closestPlayer = this.closestPlayer(this.runner).pos;
-    const danger = (cnPos) => closestPlayer.sub(cnPos).squareNorm();
+    const closestPlayer = this.closestPlayerTo(this.runner).pos;
+    let danger = (cnPos) => closestPlayer.sub(cnPos).linearNorm();
     corners.sort((a, b) => danger(a) - danger(b));
     corners = corners.slice(1, 3);
     
     // Choose the safest remaining corner:
-    const virtualPos = this.runner.add(this.runner.sub(closestPlayer));
-    const safety = (cnPos) => cnPos.sub(virtualPos).squareNorm();
-    corners.sort((a, b)  => safety(a) - safety(b));
+    danger = (cnPos) => {
+      return cnPos.sub(this.runner).linearNorm() - 
+      cnPos.sub(closestPlayer).linearNorm();
+    };
+    corners.sort((a, b) => danger(a) - danger(b));
     return corners[0];
     
   }
@@ -504,7 +497,7 @@ class Game {
   
   /* Returns a destination closer to the given
    * final destination, truncated down to a one-
-   * tile distance from the origin.
+   * tile distance from the origin(Pos-type).
    *
    * Assumes the character at origin has already
    * been temporarily removed.
@@ -544,7 +537,8 @@ class Game {
    * compresses the effect of the input.
    */
   enemyBaseSpeed(curveDown=0) {
-    const scores   = this.players.reduce((a, b) => a + b.score, 0);
+    const scores   = this.livePlayers.reduce((a, b) => a + b.score, 0) / 
+                     this.livePlayers.length;
     const obtained = Math.pow(scores + (this.misses), 1-curveDown);
     
     // Scalar multiple of the default number of targets:
@@ -553,15 +547,13 @@ class Game {
     const speed = (Game.highSpeed - Game.lowSpeed) * 
                   (1 - Math.pow(2, -exp)) + Game.lowSpeed;
     
-    // Update the music track level and return speed:
-    this.backgroundMusic.updateTrackLevel(speed);
     return speed;
   }
   
   /* If a character does not eat targets,
    * call with notHungry set to true.
    */
-  moveCharOffOf(character, notHungry) {
+  moveEnemyOffOf(character, notHungry) {
     const pos  = this[character];
     const tile = this.tileAt(pos);
     tile.key = ' ';
@@ -569,12 +561,12 @@ class Game {
     this.shuffle(pos);
     
     // Handle coloring:
-    if (this.players.some((player) => {
-      return player.trail.some(tlPos => pos.equals(tlPos))
+    if (this.livePlayers.some((player) => {
+      return player.trail.some((trPos) => pos.equals(trPos));
     })) {
       tile.coloring = 'trail';
     } else if (notHungry && 
-        this.targets.some(tgPos => pos.equals(tgPos))) {
+        this.targets.some((tgPos) => pos.equals(tgPos))) {
       tile.coloring = 'target';
     } else {
       tile.coloring = 'tile';
@@ -585,7 +577,7 @@ class Game {
    * Handles book-keeping tasks such as spawning new
    * targets, and trimming the player's trail.
    */
-  moveCharOnto(character, dest, hungry=false) {
+  moveEnemyOnto(character, dest, hungry=false) {
     const tile = this.tileAt(dest);
     if (this.isCharacter(tile)) throw 'cannot land on character.';
     this.populations[tile.key]--;
@@ -602,7 +594,7 @@ class Game {
         this.misses += 1;
         // Remove this Pos from the targets list:
         this.targets.splice(i, 1);
-        for (let player of this.players) { player.trimTrail(); }
+        for (let player of this.livePlayers) { player.trimTrail(); }
         this.spawnTargets();
         break;
       }
@@ -638,7 +630,7 @@ class Game {
       this.pauseButton.innerHTML = 'unpause';
       this.backgroundMusic.pause();
       document.body.style.filter = 'var(--pauseFilter)';
-      document.body.onkeydown    = () => {};
+      //document.body.onkeydown    = () => {};
       
     // The user pressed the un-pause button:
     } else {
@@ -652,16 +644,34 @@ class Game {
     }
   }
   
-  /* Forces / waits for the player to restart the game.
+  /* Moves the chaser to player.pos and kills player.
+   * Assumes the chaser has already moved off the grid.
    */
-  gameOver() {
-    // TODO: play a gameOver sound here:
-    this.pauseButton.disabled = true;
-    this.togglePause('pause');
+  killPlayer(player) {
+    const deathSite = player.die(); // f
+    for (let i = 0; i < this.livePlayers.length; i++) {
+      if (this.livePlayers[i].num == player.num) {
+        this.livePlayers.splice(i, 1);
+        break;
+      }
+    }
+    this.moveEnemyOnto('chaser', deathSite);
+    
+    // If all players are dead, end
+    // the game and wait for a restart:
+    if (this.livePlayers.length == 0) {
+      this.updateTrackLevel(0);
+      this.pauseButton.disabled = true;
+      this.togglePause('pause');
+    }
   }
   
   updateTrackLevel() {
-    this.backgroundMusic.updateTrackLevel(this.enemyBaseSpeed());
+    const progress = (
+      this.enemyBaseSpeed() - Game.lowSpeed) / 
+      (Game.highSpeed - Game.lowSpeed
+    );
+    this.backgroundMusic.updateTrackLevel(progress);
   }
   makeScoreElement(labelText) {
     let slot = document.createElement('div');
@@ -669,8 +679,8 @@ class Game {
     
     let counter = document.createElement('span');
     counter.dataset.player = labelText + ': ';
-    counter.innerHTML      = 0;
-    counter.onchange       = () => this.updateTrackLevel();
+    counter.innerHTML = 0;
+    counter.onchange  = () => this.updateTrackLevel();
     slot.appendChild(counter);
     return counter;
   }
@@ -682,7 +692,6 @@ class Game {
 }
 // Game base settings:
 Game.targetThinness = 72;
-Game.playerFace = ':|';
 Game.enemies = {
   'chaser': ':>',
   'nommer': ':O',

@@ -100,5 +100,6 @@ function makeOptionsMenu(parentElement) {
   parentElement.appendChild(colorSel);
 
   // Mute:
+  // TODO:
 }
 

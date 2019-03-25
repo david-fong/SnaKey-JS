@@ -4,6 +4,7 @@
  * -- game          : Game
  * -- num           : number
  * -- score_        : <span>
+ * -- isDead        : boolean
  *
  * -- pos           : Pos
  * -- trail         : array[Pos]
@@ -20,7 +21,7 @@ class Player {
     this.score_ = game.makeScoreElement('score' + this.num);
   }
   
-  /* Resets all fields except position:
+  /* Resets all fields including position:
    */
   restart() {
     this.score      = 0;
@@ -29,11 +30,19 @@ class Player {
     let date        = new Date();
     this.startTime  = date.getSeconds();
     this.timeDeltas = [];
+    this.isDead     = false;
+    
+    // Spawn the player:
+    this.pos = new Pos();
+    const middle = Math.floor(this.game.width / 2);
+    this.moveOnto(new Pos(middle + this.num, middle));
+    this.trail.push(Pos.copy(this.pos));
   }
   
   /* Handles player input, translating it to movement:
    */
   move(key) {
+    if (this.isDead) return;
     let game = this.game;
     
     // If the player wants to backtrack:
@@ -90,7 +99,7 @@ class Player {
     game.populations[tile.key]--;
     this.pos = dest;
     tile.coloring = 'player';
-    tile.key = Game.playerFace;
+    tile.key = Player.playerFace;
     tile.seq = this.num;
     
     SoundEffects.playEffectFrom(Player.moveSounds);
@@ -107,7 +116,9 @@ class Player {
         
         // Remove this Pos from the targets list:
         game.targets.splice(i, 1);
-        for (let player of game.players) { player.trimTrail(); }
+        for (let player of game.livePlayers) {
+          player.trimTrail();
+        }
         game.spawnTargets();
         break;
       }
@@ -119,18 +130,46 @@ class Player {
    * or whenever the player moves.
    */
   trimTrail() {
-    if (this.trail.length == 0) { return; }
+    if (this.trail.length <= 1) { return; }
     
-    let net = (this.score) - 0.9 * this.game.misses;
+    let net = this.score - (0.9 * this.game.misses);
     if (net < 0 || this.trail.length > Math.pow(net, 3/7)) {
-      
-      // The first element of trail is the newest addition.
-      let popTile  = this.game.tileAt(this.trail.shift());
-      let isTarget = this.game.targets.some(tgPos => popTile.pos.equals(tgPos));
-      if (!this.game.isCharacter(popTile) && !isTarget) {
-        popTile.coloring = 'tile';
+      // The last element of trail is the newest addition.
+      // Here we want to evict the oldest addition (1st element).
+      let endTile = this.game.tileAt(this.trail.shift());
+      if (endTile.coloring == 'trail') {
+        endTile.coloring = 'tile';
       }
     }
+  }
+  
+  /* Moves the player off the grid
+   * and disables further movement.
+   * Returns position of death.
+   */
+  die() {
+    // TODO: play a death sound-effect here.
+    
+    // Erase the trail:
+    const wilt = () => {
+      const trTile = this.game.tileAt(this.trail.shift());
+      if (trTile.coloring == 'trail') {
+        trTile.coloring = 'tile';
+      }
+      if (this.trail.length == 0) {
+        clearInterval(wiltIntervalId);
+      }
+    }
+    const that = this;
+    const wiltIntervalId = setInterval(wilt.bind(that), 500);
+    
+    // Erase player and disable movement:
+    this.moveOffOf();
+    const deathSite = Pos.copy(this.pos);
+    this.pos = undefined;
+    this.isDead = true;
+    
+    return deathSite;
   }
   
   /* Returns average period in the last five moves.
@@ -149,5 +188,6 @@ class Player {
   get score()    { return parseInt(this.score_.innerHTML ); }
   set score(val) { this.score_.innerHTML = val;             }
 }
+Player.playerFace = ':|';
 Player.moveSounds = SoundEffects.makeVariants('move', 9);
 Player.eatSounds  = SoundEffects.makeVariants('eat',  5, 0.3);

@@ -78,4 +78,7 @@ class Pos {
     }
     return new Pos(x, y);
   }
+  static copy(other) {
+    return new Pos(other.x, other.y);
+  }
 }

@@ -49,27 +49,25 @@ class SoundEffects {
 class BackgroundMusic {
   /* Creates an object that can play background music.
    */
-  constructor(numTracks, lb, ub) {
-    // Create a <numTracks>-long list of track filenames:
-    let tracks   = [];
-    let path = 'assets/sounds/background_music/';
+  constructor(numTracks) {
+    // Create a list of track filenames:
+    const tracks = [];
+    const path = 'assets/sounds/background_music/';
     for (let i = 0; i < numTracks; i++) {
       tracks.push(path + i + '.mp3');
     }
     
     // Initialize fields:
-    this.lb = lb;
-    this.ub = ub;
     this.level = 0;
     this.numTracks = numTracks;
     
     this.tracks = tracks.map(filename => {
-      let track    = new Audio(filename);
+      const track  = new Audio(filename);
       track.loop   = true;
       track.volume = 0.6;
       track.muted  = true;
       track.addEventListener('timeupdate', () => {
-        let buffer = 0.26;
+        const buffer = 0.26;
         if (track.currentTime > track.duration - buffer) {
           track.currentTime = 0;
         }
@@ -82,8 +80,8 @@ class BackgroundMusic {
   /* Starts playing all tracks together.
    */
   play() {
-    for (let track of this.tracks) {
-      let promise = track.play();
+    for (const track of this.tracks) {
+      const promise = track.play();
       
       if (promise !== undefined) {
         promise.then(_ => {
@@ -99,7 +97,7 @@ class BackgroundMusic {
   /* Causes all tracks to stop playing.
    */
   pause() {
-    for (let track of this.tracks) {
+    for (const track of this.tracks) {
       track.pause();
     }
   }
@@ -112,12 +110,12 @@ class BackgroundMusic {
    * chattering when the input hovers around level-
    * changing values.
    *
-   * input must be in the range [this.lb, this.ub).
+   * progress must be in the range [0, 1).
    */
-  updateTrackLevel(input) {
+  updateTrackLevel(progress) {
     // Map input to corresponding new track-level:
-    let newLevel = ((input - this.lb) / (this.ub - this.lb) *
-        this.numTracks / BackgroundMusic.fullTrackPercent);
+    let newLevel = progress * this.numTracks / 
+        BackgroundMusic.fullTrackProgress;
     const increase = newLevel > this.level;
     
     if (increase) newLevel = Math.round(newLevel);
@@ -141,4 +139,4 @@ class BackgroundMusic {
     
   }
 }
-BackgroundMusic.fullTrackPercent = 0.25;
+BackgroundMusic.fullTrackProgress = 0.25;
