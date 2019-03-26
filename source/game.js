@@ -328,7 +328,7 @@ class Game {
       return;
     }
     
-    if (!event.shiftKey) {
+    if (!event.shiftKey && event.key.length == 1) {
       this.allPlayers[0].move(event.key);
     } else if (this.allPlayers.length > 1) {
       this.allPlayers[1].move(event.key);
@@ -560,7 +560,6 @@ class Game {
     const exp   = Math.pow(obtained / slowness, 2);
     const speed = (Game.highSpeed - Game.lowSpeed) * 
                   (1 - Math.pow(2, -exp)) + Game.lowSpeed;
-    console.log(speed);
     return speed;
   }
   
