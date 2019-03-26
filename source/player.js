@@ -116,7 +116,7 @@ class Player {
         
         // Remove this Pos from the targets list:
         game.targets.splice(i, 1);
-        for (let player of game.livePlayers) {
+        for (const player of game.livePlayers) {
           player.trimTrail();
         }
         game.spawnTargets();

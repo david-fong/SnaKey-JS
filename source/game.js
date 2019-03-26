@@ -45,7 +45,6 @@ function weightedChoice(weights) {
  * -- populations   : object{string: number}
  * -- grid          : array[Tile]
  * -- language      : object{string: string}
- * -- speedScalar   : float
  *
  * -- restartButton : <button>
  * -- pauseButton   : <button>
@@ -62,11 +61,11 @@ function weightedChoice(weights) {
  *
  * TODO:
  * work on tutorial pane.
- * update speedScalar on every reset from document.getElementById('difficulty');
+ * create a field that is a scalar of Game.highSpeed based on the difficulty slider
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
- * set and interval to correct background track misalignments.
+ * set an interval to correct background track misalignments.
  * some kind of fun easter egg if you type specific words.
  * get rid of gaps in the background music loop.
  */
@@ -77,10 +76,10 @@ class Game {
     this.grid       = [];
     this.width      = width;
     this.numTargets = Math.pow(this.width, 2) / Game.targetThinness;
+    document.documentElement.style.setProperty('--width-in-tiles', width);
     
     // Initialize Table display:
     const dGrid = document.getElementById('grid');
-    dGrid.style.setProperty('--width-in-tiles', width);
     for (let y = 0; y < width; y++) {
       let row = dGrid.insertRow();
       
@@ -100,6 +99,7 @@ class Game {
     }
     // TODO @ below: update numTracks.
     this.backgroundMusic = new BackgroundMusic(12);
+    
     // Create players:
     this.allPlayers = [];
     for (let i = 0; i < numPlayers; i++) {
@@ -107,12 +107,11 @@ class Game {
     }
     // Make menus:
     window.onblur = () => this.togglePause('pause');
-    makeOptionsMenu(document.getElementById('lBar'));
     this.makeLowerBar();
+    makeOptionsMenu(this, document.getElementById('rBar'));
     
     // Setup invariants and then start the game:
     for (let enemy in Game.enemies) { this[enemy] = new Pos(); }
-    this.pauseButton.innerHTML = 'unpause';
     this.restart();
   }
   
@@ -120,7 +119,7 @@ class Game {
    * and also score and misses counters.
    */
   makeLowerBar() {
-    const bar = document.getElementById('rBar');
+    const bar = document.getElementById('lBar');
     
     // Setup button displays:
     for (let bName of ['restart', 'pause', 'spice']) {
@@ -323,7 +322,7 @@ class Game {
     if (this.allPlayers.length == 1 && event.key == 'Enter') {
       if (event.shiftKey) this.restart();
       else this.togglePause();
-    } else if (this.pauseButton.innerHTML == 'unpause') {
+    } else if (this.pauseButton.pauseOn) {
       return;
     }
     
@@ -623,11 +622,11 @@ class Game {
     // Handle if a method is requesting to
     // force the game to a certain state:
     if (force == 'pause') {
-      this.pauseButton.innerHTML = 'pause';
+      this.pauseButton.pauseOn = false;
       this.togglePause();
       return;
     } else if (force == 'unpause') {
-      this.pauseButton.innerHTML = 'unpause';
+      this.pauseButton.pauseOn = true;
       this.togglePause();
       return;
     }
@@ -639,7 +638,7 @@ class Game {
     clearTimeout(that.runnerCancel);
     
     // The player pressed the pause button:
-    if (this.pauseButton.innerHTML == 'pause') {
+    if (!this.pauseButton.pauseOn) {
       this.pauseButton.innerHTML = 'unpause';
       this.backgroundMusic.pause();
       document.body.style.filter = 'var(--pauseFilter)';
@@ -648,13 +647,16 @@ class Game {
     // The user pressed the un-pause button:
     } else {
       this.pauseButton.innerHTML = 'pause';
-      this.backgroundMusic.play();
+      if (!document.getElementById('muteButton').muteOn) {
+        this.backgroundMusic.play();
+      }
       document.body.style.filter = '';
       document.body.onkeydown = () => this.movePlayer(event);
       this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);
       this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
       this.runnerCancel = setTimeout(that.moveRunner.bind(that), 1000);
     }
+    this.pauseButton.pauseOn = !this.pauseButton.pauseOn;
   }
   
   /* Moves the chaser to player.pos and kills player.
