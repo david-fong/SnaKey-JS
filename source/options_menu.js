@@ -23,7 +23,7 @@ function makeOptionsMenu(game, parentElement) {
 
     '10. Wouldn\'t it be nice if there was a way' +
     '   to cut down your misses? (spoiler: there is)',
-    '11. If you catch (go right beside) the runner,' + // 50 chars wide.
+    '11. If you catch (go right beside) the runner,' +
     '   your misses will be cut down by a third.',
 
     '12. If you find the game too easy, press the' +

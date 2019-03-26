@@ -139,4 +139,4 @@ class BackgroundMusic {
     
   }
 }
-BackgroundMusic.fullTrackProgress = 0.25;
+BackgroundMusic.fullTrackProgress = 0.40;

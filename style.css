@@ -69,7 +69,7 @@ body {
   flex-basis:       40vh;
 }
 .tutorial > div {
-  width:            100%;
+  width:            85%;
   display:          none;
   text-overflow:    clip;
 }

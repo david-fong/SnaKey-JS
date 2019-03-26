@@ -61,6 +61,7 @@ function weightedChoice(weights) {
  *
  * TODO:
  * work on tutorial pane.
+ * make progress slider use <div> instead of <progress>.
  * create a field that is a scalar of Game.highSpeed based on the difficulty slider
  * 
  * Cookies for: name, high-score(score, misses), version.
@@ -97,7 +98,7 @@ class Game {
         cell.appendChild(fInner);
       }
     }
-    // TODO @ below: update numTracks.
+    // Initialize background music with all 12 tracks:
     this.backgroundMusic = new BackgroundMusic(12);
     
     // Create players:
@@ -113,6 +114,7 @@ class Game {
     // Setup invariants and then start the game:
     for (let enemy in Game.enemies) { this[enemy] = new Pos(); }
     this.restart();
+    document.body.onkeydown = () => this.movePlayer(event);
   }
   
   /* Creates restart and pause buttons,
@@ -554,11 +556,11 @@ class Game {
     const obtained = Math.pow(scores + (this.misses), 1-curveDown);
     
     // Scalar multiple of the default number of targets:
-    const slowness = 25 * (20 * 20 / Game.targetThinness);
+    const slowness = 25 * Game.defaultNumTargets;
     const exp   = Math.pow(obtained / slowness, 2);
     const speed = (Game.highSpeed - Game.lowSpeed) * 
                   (1 - Math.pow(2, -exp)) + Game.lowSpeed;
-    
+    console.log(speed);
     return speed;
   }
   
@@ -622,11 +624,11 @@ class Game {
     // Handle if a method is requesting to
     // force the game to a certain state:
     if (force == 'pause') {
-      this.pauseButton.pauseOn = false;
+      this.paused = false;
       this.togglePause();
       return;
     } else if (force == 'unpause') {
-      this.pauseButton.pauseOn = true;
+      this.paused = true;
       this.togglePause();
       return;
     }
@@ -638,25 +640,20 @@ class Game {
     clearTimeout(that.runnerCancel);
     
     // The player pressed the pause button:
-    if (!this.pauseButton.pauseOn) {
-      this.pauseButton.innerHTML = 'unpause';
+    if (!this.paused) {
       this.backgroundMusic.pause();
       document.body.style.filter = 'var(--pauseFilter)';
-      //document.body.onkeydown    = () => {};
-      
     // The user pressed the un-pause button:
     } else {
-      this.pauseButton.innerHTML = 'pause';
-      if (!document.getElementById('muteButton').muteOn) {
+      if (!this.muted) {
         this.backgroundMusic.play();
       }
       document.body.style.filter = '';
-      document.body.onkeydown = () => this.movePlayer(event);
       this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);
       this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
       this.runnerCancel = setTimeout(that.moveRunner.bind(that), 1000);
     }
-    this.pauseButton.pauseOn = !this.pauseButton.pauseOn;
+    this.paused = !this.paused;
   }
   
   /* Moves the chaser to player.pos and kills player.
@@ -702,14 +699,31 @@ class Game {
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
   isCharacter(tile) { return !(tile.key in this.language); }
   
-  get misses() {return parseInt(this.misses_.innerHTML);}
+  get misses() {
+    return parseInt(this.misses_.innerHTML);
+  }
   set misses(val) {
     this.misses_.innerHTML = val;
     this.updateTrackLevel();
   }
+  get paused() {
+    return this.pauseButton.pauseOn;
+  }
+  set paused(onFlag) {
+    if (onFlag) {
+      this.pauseButton.innerHTML = 'unpause';
+    } else {
+      this.pauseButton.innerHTML = 'pause';
+    }
+    this.pauseButton.pauseOn = onFlag;
+  }
+  get muted() {
+    return document.getElementById('muteButton').muteOn;
+  }
 }
 // Game base settings:
 Game.targetThinness = 72;
+Game.defaultNumTargets = 20 * 20 / Game.targetThinness;
 Game.enemies = {
   'chaser': ':>',
   'nommer': ':O',
