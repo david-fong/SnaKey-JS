@@ -26,16 +26,16 @@ body {
   align-content:    flex-start;
   flex-flow:        row wrap;
 }
-#lBar  { order: 0; }
-#rBar  { order: 2; }
-.hBars { order: 1; }
+#lBar { order: 0; }
+#rBar { order: 2; }
+#cBar { order: 1; }
 /* Move menu bars under grid 
  * when aspect ratio decreases. */
 @media (max-aspect-ratio: 4/3) {
-  #lBar  { order: 1; }
-  #rBar  { order: 2; }
-  .hBars { order: 0; }
-  #lBar, #rBar { flex-basis: 45%; }
+  #lBar { order: 1; }
+  #rBar { order: 2; }
+  #cBar { order: 0; }
+  .menuBar { flex-basis: 45%; }
 }
 
 
@@ -58,9 +58,11 @@ body {
   border:           none;
   border-radius:    0.3em;
   
+  /* center inner content */
   display:          flex;
   align-items:      center;
   justify-content:  center;
+  position:         relative;
   
   cursor:           pointer;
   font:             inherit;
@@ -73,16 +75,8 @@ body {
   display:          none;
   text-overflow:    clip;
 }
+.progress { position: absolute; }
 .scoreTag span::before { content: attr(data-player) }
-.slider, progress {
-  -webkit-appearance: none;
-  -moz-appearance:  none;
-  outline:          none;
-}
-.slider::-webkit-slider-thumb, .slider::-moz-range-thumb {
-  -webkit-appearance: none;
-  
-}
 
 
 /* GRID & TILES */
@@ -91,7 +85,7 @@ body {
   font-size:        calc(var(--tileHt) * 0.800);
   border-spacing:   calc(var(--tileHt) * 0.085);
 }
-.grid td {
+.grid td, .menuItem {
   padding:          0px;
   overflow-x:       hidden;
   overflow-y:       hidden;
@@ -124,19 +118,19 @@ body {
 
 
 /* TILE COLORING */
-div.tile, .menuItem { 
-             background-color: var(--tileBg);
-             color:            var(--tileFg);  }
-div.target { background-color: var(--target);  }
-div.player { background-color: var(--player);  }
-div.trail  { background-color: var(--trailBg);
-             color:            var(--trailFg); }
-div.chaser { background-color: var(--chaser);  }
-div.nommer { background-color: var(--nommer);  }
-div.runner { background-color: var(--runner);  }
+.tile, .menuItem {
+          background-color: var(--tileBg);
+          color:            var(--tileFg);  }
+.target { background-color: var(--target);  }
+.player { background-color: var(--player);  }
+.trail  { background-color: var(--trailBg);
+          color:            var(--trailFg); }
+.chaser { background-color: var(--chaser);  }
+.nommer { background-color: var(--nommer);  }
+.runner { background-color: var(--runner);  }
 
 /* adds an outline to characters: */
-.grid div [class$='er'], div.target {
+.flip-inner [class$='er'], .target {
   box-shadow: 0 0 0px 0.08em white inset;
 }
 

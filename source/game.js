@@ -3,24 +3,30 @@
 /* 
  */
 class Tile {
-  constructor(pos, front, back) {
-    this.pos   = pos;
-    this.front = front;
-    this.back  = back;
+  constructor(pos) {
+    this.pos    = pos;
+    this.fInner = document.createElement('div');
+    this.fInner.className = 'flip-inner';
+    
+    this.front_ = document.createElement('div');
+    this.back_  = document.createElement('div');
+
+    this.fInner.appendChild(this.front_);
+    this.fInner.appendChild(this.back_);
   }
   
-  get key()    { return this.front.innerHTML; }
-  set key(key) { this.front.innerHTML = key;  }
+  get key()    { return this.front_.innerHTML; }
+  set key(key) { this.front_.innerHTML = key;  }
   
-  get seq()    { return this.back.innerHTML;  }
-  set seq(seq) { this.back.innerHTML = seq;   }
+  get seq()    { return this.back_.innerHTML;  }
+  set seq(seq) { this.back_.innerHTML = seq;   }
   
   get coloring() {
-    return this.front.className;
+    return this.front_.className;
   }
   set coloring(cl) {
-    this.front.className = cl;
-    this.back.className  = cl;
+    this.front_.className = cl;
+    this.back_.className  = cl;
   }
 }
 
@@ -48,7 +54,7 @@ function weightedChoice(weights) {
  *
  * -- restartButton : <button>
  * -- pauseButton   : <button>
- * -- progressBar   : <input::range>
+ * -- progressBar   : <span>
  *
  * -- targets       : array[Pos]
  * -- players       : array[Player]
@@ -63,6 +69,7 @@ function weightedChoice(weights) {
  * work on tutorial pane.
  * make progress slider use <div> instead of <progress>.
  * create a field that is a scalar of Game.highSpeed based on the difficulty slider
+ * change difficulty ramp-shape to non-bell, make max higher but ramp feel the same.
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
@@ -82,20 +89,13 @@ class Game {
     // Initialize Table display:
     const dGrid = document.getElementById('grid');
     for (let y = 0; y < width; y++) {
-      let row = dGrid.insertRow();
+      const row = dGrid.insertRow();
       
       for (let x = 0; x < width; x++) {
-        const cell   = row.insertCell();
-        const fInner = document.createElement('div');
-        fInner.className = 'flip-inner';
-        
-        const front  = document.createElement('div');
-        const back   = document.createElement('div');
-        this.grid.push(new Tile(new Pos(x, y), front, back));
-
-        fInner.appendChild(front);
-        fInner.appendChild(back);
-        cell.appendChild(fInner);
+        const cell = row.insertCell();
+        const tile = new Tile(new Pos(x, y));
+        this.grid.push(tile);
+        cell.appendChild(tile.fInner);
       }
     }
     // Initialize background music with all 12 tracks:
@@ -112,7 +112,7 @@ class Game {
     makeOptionsMenu(this, document.getElementById('rBar'));
     
     // Setup invariants and then start the game:
-    for (let enemy in Game.enemies) { this[enemy] = new Pos(); }
+    for (const enemy in Game.enemies) { this[enemy] = new Pos(); }
     this.restart();
     document.body.onkeydown = () => this.movePlayer(event);
   }
@@ -140,9 +140,16 @@ class Game {
       this.misses += 25;
     }
     
-    // Progress bar slider:
-    const progress = document.createElement('progress');
-    progress.className = 'menuItem';
+    // Progress bar slider: TODO:
+    const progress = document.createElement('div');
+    progress.className  = 'menuItem';
+    const chaserIcon    = new Tile(new Pos());
+    chaserIcon.key      = Game.enemies['chaser'];
+    chaserIcon.coloring = 'progress chaser';
+    progress.appendChild(chaserIcon.fInner);
+    progress.set = (val) => {
+      progress.style.width = val * 100 + '%';
+    }
     bar.appendChild(progress);
     this.progressBar = progress;
     
@@ -557,9 +564,9 @@ class Game {
     
     // Scalar multiple of the default number of targets:
     const slowness = 25 * Game.defaultNumTargets;
-    const exp   = Math.pow(obtained / slowness, 2);
+    const exp   = -Math.pow(obtained / slowness, 1.44);
     const speed = (Game.highSpeed - Game.lowSpeed) * 
-                  (1 - Math.pow(2, -exp)) + Game.lowSpeed;
+                  (1 - Math.pow(2, exp)) + Game.lowSpeed;
     return speed;
   }
   
@@ -683,7 +690,7 @@ class Game {
       (Game.highSpeed - Game.lowSpeed)
     );
     this.backgroundMusic.updateTrackLevel(progress);
-    this.progressBar.value = progress;
+    this.progressBar.set(progress);
   }
   makeScoreElement(labelText) {
     let slot = document.createElement('div');
@@ -728,5 +735,5 @@ Game.enemies = {
   'nommer': ':O',
   'runner': ':D',
 };
-Game.highSpeed = 1.5;
+Game.highSpeed = 1.605;
 Game.lowSpeed  = 0.35;
