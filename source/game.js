@@ -48,9 +48,10 @@ function weightedChoice(weights) {
 /* Object keys:
  * -- width         : number - [10,30]
  * -- numTargets    : number
- * -- populations   : object{string: number}
+ * -- populations   : {string: number}
  * -- grid          : array[Tile]
- * -- language      : object{string: string}
+ * -- language      : {string: string}
+ * -- speed         : .ub, .lb
  *
  * -- restartButton : <button>
  * -- pauseButton   : <button>
@@ -68,8 +69,6 @@ function weightedChoice(weights) {
  * TODO:
  * work on tutorial pane.
  * make progress slider use <div> instead of <progress>.
- * create a field that is a scalar of Game.highSpeed based on the difficulty slider
- * change difficulty ramp-shape to non-bell, make max higher but ramp feel the same.
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
@@ -142,13 +141,13 @@ class Game {
     
     // Progress bar slider: TODO:
     const progress = document.createElement('div');
-    progress.className  = 'menuItem';
+    progress.className  = 'menuItem progress';
     const chaserIcon    = new Tile(new Pos());
     chaserIcon.key      = Game.enemies['chaser'];
     chaserIcon.coloring = 'progress chaser';
     progress.appendChild(chaserIcon.fInner);
     progress.set = (val) => {
-      progress.style.width = val * 100 + '%';
+      chaserIcon.fInner.style.left = 'calc(' + val + ' * (100% - var(--tileHt))';
     }
     bar.appendChild(progress);
     this.progressBar = progress;
@@ -168,14 +167,16 @@ class Game {
   restart() {
     this.restartButton.blur();
     
+    this.language = languages[
+      document.getElementById('langSelect').value];
+    this.speed = Game.speeds[
+      document.getElementById('speedSelect').value];
+      
     // Reset all display-key populations:
-    const langSelect = document.getElementById('langSelect');
-    this.language = languages[langSelect.value];
     this.populations = {};
     for (let key in this.language) {
       this.populations[key] = 0;
     }
-    
     this.misses_.innerHTML  = 0;
     this.heat     = 0;
     this.targets  = [];
@@ -552,7 +553,7 @@ class Game {
   /* Returns a speed in tiles per second.
    * Uses an upside-down bell-curve with
    * score + misses as the input variable.
-   * curveDown is in the rage [0, 1]. It
+   * curveDown is in the range [0, 1]. It
    * compresses the effect of the input.
    * 
    * Requires that this.livePlayers is not empty.
@@ -565,8 +566,8 @@ class Game {
     // Scalar multiple of the default number of targets:
     const slowness = 25 * Game.defaultNumTargets;
     const exp   = -Math.pow(obtained / slowness, 1.44);
-    const speed = (Game.highSpeed - Game.lowSpeed) * 
-                  (1 - Math.pow(2, exp)) + Game.lowSpeed;
+    const speed = (this.speed.ub - this.speed.lb) * 
+                  (1 - Math.pow(2, exp)) + this.speed.lb;
     return speed;
   }
   
@@ -686,8 +687,8 @@ class Game {
   
   updateTrackLevel() {
     const progress = (
-      (this.enemyBaseSpeed() - Game.lowSpeed) / 
-      (Game.highSpeed - Game.lowSpeed)
+      (this.enemyBaseSpeed() - this.speed.lb) / 
+      (this.speed.ub - this.speed.lb)
     );
     this.backgroundMusic.updateTrackLevel(progress);
     this.progressBar.set(progress);
@@ -735,5 +736,11 @@ Game.enemies = {
   'nommer': ':O',
   'runner': ':D',
 };
-Game.highSpeed = 1.605;
-Game.lowSpeed  = 0.35;
+// span in [0.2, 5]
+Game.speeds = {
+  'slowest': {'lb': 0.17, 'ub': 0.45, 'fullBand': 0.16},
+  'slower':  {'lb': 0.26, 'ub': 0.53, 'fullBand': 0.32},
+  'normal':  {'lb': 0.35, 'ub': 1.60, 'fullBand': 0.48},
+  'faster':  {'lb': 0.59, 'ub': 1.70, 'fullBand': 0.55},
+  'fastest': {'lb': 0.86, 'ub': 1.80, 'fullBand': 0.60},
+};

@@ -62,7 +62,6 @@ body {
   display:          flex;
   align-items:      center;
   justify-content:  center;
-  position:         relative;
   
   cursor:           pointer;
   font:             inherit;
@@ -75,7 +74,10 @@ body {
   display:          none;
   text-overflow:    clip;
 }
-.progress { position: absolute; }
+.progress {
+  color:            black;
+  justify-content:  flex-start;
+}
 .scoreTag span::before { content: attr(data-player) }
 
 

@@ -125,8 +125,7 @@ class BackgroundMusic {
    * The bottom-level track will always be on.
    */
   updateTrackLevel(progress) {
-    let base = progress * this.numTracks / 
-      BackgroundMusic.fullTrackProgress;
+    let base = progress * this.numTracks;
     if (base >= this.numTracks) base = this.numTracks - 1;
     
     // Going up:
@@ -147,4 +146,3 @@ class BackgroundMusic {
     
   }
 }
-BackgroundMusic.fullTrackProgress = 0.40;

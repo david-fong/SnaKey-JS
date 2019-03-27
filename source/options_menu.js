@@ -59,13 +59,19 @@ function makeOptionsMenu(game, parentElement) {
   
   
   // Difficulty: TODO
-  const makeDifficultyItem = (() => {
-    const difficulty = document.createElement('input');
-    difficulty.type  = 'range';
-    difficulty.id    = 'difficulty';
-    difficulty.className = 'menuItem slider';
-    difficulty.innerHTML = 'difficulty:';
-    parentElement.appendChild(difficulty);
+  const makeSpeedItem = (() => {
+    const speedSel = document.createElement('select');
+    speedSel.id        = 'speedSelect';
+    speedSel.className = 'menuItem';
+    speedSel.name      = 'speed';
+    for (const name in Game.speeds) {
+      const speed      = document.createElement('option');
+      speed.innerHTML  = name;
+      speed.value      = name;
+      speedSel.add(speed);
+    }
+    speedSel.value = 'normal';
+    parentElement.appendChild(speedSel);
   })();
   
   
