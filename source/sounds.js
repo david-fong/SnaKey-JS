@@ -47,13 +47,14 @@ class BGMTrack {
   constructor(filename, maxVol) {
     const track  = new Audio(filename);
     track.loop   = true;
+    track.autoplay = false;
     
     this.audio   = track;
     this.maxVol  = maxVol;
     track.volume = 0.0;
     
     track.addEventListener('timeupdate', () => {
-      const buffer = 0.26;
+      const buffer = 0.30;
       if (track.currentTime > track.duration - buffer) {
         track.currentTime = 0;
       }
@@ -64,11 +65,20 @@ class BGMTrack {
   // volume must be in the range [0, 1].
   set volume(volume) {
     if (volume <= 0) {
+      volume = 0;
       this.audio.muted = true;
     } else if (volume >= 1) {
+      volume = 1;
       this.audio.muted = false;
     }
     this.audio.volume = volume * this.maxVol;
+  }
+  
+  play() {
+    return this.audio.play();
+  }
+  pause() {
+    return this.audio.pause();
   }
 }
 
@@ -89,8 +99,6 @@ class BackgroundMusic {
     for (let i = 0; i < numTracks; i++) {
       this.tracks.push(new BGMTrack(path + i + '.mp3', 0.6));
     }
-    // TODO: can this line be deleted?
-    this.tracks[0].muted = false;
   }
   
   /* Starts playing all tracks together.
@@ -116,6 +124,9 @@ class BackgroundMusic {
     for (const track of this.tracks) {
       track.pause();
     }
+    for (const track of this.tracks) {
+      track.currentTime = this.tracks[0].currentTime;
+    }
   }
   
   /* Unmutes background music tracks up to
@@ -125,24 +136,25 @@ class BackgroundMusic {
    * The bottom-level track will always be on.
    */
   updateTrackLevel(progress) {
-    let base = progress * this.numTracks;
-    if (base >= this.numTracks) base = this.numTracks - 1;
+    let level = progress * this.numTracks;
+    let floor = Math.floor(level);
+    if (level >= this.numTracks) {
+      floor = this.numTracks - 1
+      level = this.numTracks;
+    }
     
-    // Going up:
-    if (base > this.base) {
-      for (let i = this.base + 1; i < base; i++) {
+    // Going up to the above track:
+    if (floor > this.level) {
+      for (let i = this.level; i < floor; i++) {
         this.tracks[i].volume = 1.0;
       }
-    // Going down:
-    } else {
-      for (let i = this.base; i > base; i--) {
+    // Going down below this track:
+    } else if (Math.ceil(level) < this.level){
+      for (let i = this.level; i > level; i--) {
         this.tracks[i].volume = 0.0;
       }
     }
-    this.base = Math.floor(base);
-    this.tracks[this.base].volume = base - this.base;
-    
-    // TODO: check that the tracks are aligned time-wise:
-    
+    this.level = floor;
+    this.tracks[this.level].volume = level - floor;
   }
 }

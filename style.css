@@ -1,7 +1,7 @@
 /* GENERAL */
 body {
 /*--width-in-tiles: ; <- declared in game.js */
-  --tileHt:         calc((95vmin - 20px) / var(--width-in-tiles));
+  --tileHt:         calc((93vmin - 20px) / var(--width-in-tiles));
   --pauseFilter:    grayscale(100%) brightness(130%) contrast(60%);
   
   font:             90% Trebuchet MS;
@@ -134,5 +134,10 @@ body {
 /* adds an outline to characters: */
 .flip-inner [class$='er'], .target {
   box-shadow: 0 0 0px 0.08em white inset;
+}
+.trail, .target {
+  transition-property:      background-color, color;
+  transition-duration:      0.5s; 
+  transition-timing-function: ease-in-out;
 }
 

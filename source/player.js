@@ -17,7 +17,6 @@ class Player {
   constructor(game, num) {
     this.game   = game;
     this.num    = num;
-    this.pos    = new Pos();
     this.score_ = game.makeScoreElement('score' + this.num);
   }
   
@@ -27,30 +26,28 @@ class Player {
     this.score_.innerHTML = 0;
     this.trail      = [];
     this.moveStr    = '';
-    let date        = new Date();
-    this.startTime  = date.getSeconds();
+    this.startTime  = (new Date()).getSeconds();
     this.timeDeltas = [];
     this.isDead     = false;
     
     // Spawn the player:
     this.pos = new Pos();
     const middle = Math.floor(this.game.width / 2);
-    this.moveOnto(new Pos(middle + this.num, middle));
-    this.trail.push(Pos.copy(this.pos));
+    this.moveOnto(new Pos(middle - this.num, middle));
+    this.prevPos = Pos.copy(this.pos);
   }
   
   /* Handles player input, translating it to movement:
    */
   move(key) {
     if (this.isDead) return;
-    let game = this.game;
     
     // If the player wants to backtrack:
     if (key == ' ') {
       // Fail if the trail is empty or choked by an enemy:
-      let trailTop = this.trail.slice(-1);
-      if (trailTop.length == 0 || game.isCharacter(
-          game.tileAt(trailTop[0]))) { return; }
+      let trailTop = this.trail.slice(-1)[0];
+      if (trailTop == undefined || this.game.isCharacter(
+          this.game.tileAt(trailTop))) { return; }
       this.moveOffOf(true);
       this.moveOnto(this.trail.pop());
       return;
@@ -58,9 +55,9 @@ class Player {
     
     // If the player didn't want to backtrack:
     this.moveStr += key.toLowerCase();
-    let destTiles = game.adjacent(this.pos).filter((adjTile) => {
-      return this.moveStr.endsWith(adjTile.seq);
-    });
+    let destTiles = this.game.adjacent(this.pos).filter(
+      (adjTile) => this.moveStr.endsWith(adjTile.seq)
+    );
     // Handle if the player typed a sequence
     // corresponding to an adjacent tile:
     if (destTiles.length == 1) {
@@ -92,16 +89,18 @@ class Player {
    * Plays approprate sounds based on results.
    */
   moveOnto(dest) {
-    let game = this.game;
-    let tile = game.tileAt(dest);
+    const game = this.game;
+    const tile = game.tileAt(dest);
     
-    // Draw the changes and play a movement sound:
+    // Draw/make the changes:
     game.populations[tile.key]--;
-    this.pos = dest;
+    this.prevPos  = this.pos;
+    this.pos      = dest;
     tile.coloring = 'player';
-    tile.key = Player.playerFace;
-    tile.seq = this.num;
+    tile.key      = Player.playerFace;
+    tile.seq      = this.num;
     
+    // Play a movement sound:
     SoundEffects.playEffectFrom(Player.moveSounds);
     
     // Check if the player landed on a target:
@@ -116,9 +115,6 @@ class Player {
         
         // Remove this Pos from the targets list:
         game.targets.splice(i, 1);
-        for (const player of game.livePlayers) {
-          player.trimTrail();
-        }
         game.spawnTargets();
         break;
       }
@@ -130,9 +126,9 @@ class Player {
    * or whenever the player moves.
    */
   trimTrail() {
-    if (this.trail.length <= 1) { return; }
+    if (this.trail.length == 0) { return; }
     
-    let net = this.score - (0.9 * this.game.misses);
+    const net = this.score - (0.9 * this.game.misses);
     if (net < 0 || this.trail.length > Math.pow(net, 3/7)) {
       // The last element of trail is the newest addition.
       // Here we want to evict the oldest addition (1st element).
@@ -151,17 +147,12 @@ class Player {
     // TODO: play a death sound-effect here.
     
     // Erase the trail:
-    const wilt = () => {
-      const trTile = this.game.tileAt(this.trail.shift());
+    for (const trPos of this.trail) {
+      const trTile = this.game.tileAt(trPos);
       if (trTile.coloring == 'trail') {
         trTile.coloring = 'tile';
       }
-      if (this.trail.length == 0) {
-        clearInterval(wiltIntervalId);
-      }
     }
-    const that = this;
-    const wiltIntervalId = setInterval(wilt.bind(that), 500);
     
     // Erase player and disable movement:
     this.moveOffOf();
@@ -178,9 +169,8 @@ class Player {
    */
   avgPeriod() {
     this.timeDeltas = this.timeDeltas.slice(-5);
-    let date = new Date();
     let totalTime = this.timeDeltas.reduce((a, b) => a + b, 0) + 
-      date.getSeconds() - this.startTime;
+      (new Date()).getSeconds() - this.startTime;
     return totalTime / (this.timeDeltas.length + 1);
   }
   

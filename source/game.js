@@ -68,7 +68,6 @@ function weightedChoice(weights) {
  *
  * TODO:
  * work on tutorial pane.
- * make progress slider use <div> instead of <progress>.
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
@@ -77,7 +76,7 @@ function weightedChoice(weights) {
  * get rid of gaps in the background music loop.
  */
 class Game {
-  constructor(width=20, numPlayers=1) {
+  constructor(width=21, numPlayers=1) {
     if (width < 10) width = 10;
     if (width > 30) width = 30;
     this.grid       = [];
@@ -110,10 +109,14 @@ class Game {
     this.makeLowerBar();
     makeOptionsMenu(this, document.getElementById('rBar'));
     
-    // Setup invariants and then start the game:
+    // Setup invariants and then prompt the player to start the game:
     for (const enemy in Game.enemies) { this[enemy] = new Pos(); }
-    this.restart();
-    document.body.onkeydown = () => this.movePlayer(event);
+    this.clearGrid();
+    this.printStartPrompt();
+    document.body.onkeydown = () => {
+      this.restart();
+      document.body.onkeydown = () => this.movePlayer(event);
+    }
   }
   
   /* Creates restart and pause buttons,
@@ -169,8 +172,8 @@ class Game {
     
     this.language = languages[
       document.getElementById('langSelect').value];
-    this.speed = Game.speeds[
-      document.getElementById('speedSelect').value];
+    this.speed = Object.assign({}, Game.speeds[
+      document.getElementById('speedSelect').value]);
       
     // Reset all display-key populations:
     this.populations = {};
@@ -182,11 +185,7 @@ class Game {
     this.targets  = [];
     
     // Despawn all characters and re-shuffle all tiles:
-    for (let tile of this.grid) {
-      tile.key = ' ';
-      tile.seq = '<br>';
-      tile.coloring = 'tile';
-    }
+    this.clearGrid();
     for (let tile of this.grid) {
       this.shuffle(tile.pos);
     }
@@ -295,7 +294,8 @@ class Game {
   /* Returns a collection of tiles in the 
    * (2*radius + 1)^2 area centered at pos,
    * all satisfying the condition that they
-   * do not contain the player or an enemy:
+   * do not contain the player or an enemy,
+   * and are inside the grid:
    */
   adjacent(pos, radius=1) {
     // Get all neighboring tiles in (2*radius + 1)^2 area:
@@ -363,12 +363,11 @@ class Game {
     weights.set(false, 1);
     weights.set(true,  Math.pow(maxMissWeight, 1 - power));
     
-    // Miss:
-    if (weightedChoice(weights)) {
-      dest = tgPlayer.trail.slice(-1)[0];
+    // If the player was moving fast and has a little luck, miss:
+    if (weightedChoice(weights)) { dest = tgPlayer.prevPos; }
       
     // Handle if the chaser can catch the player:
-    } else if (this.chaser.sub(dest).squareNorm() == 1) {
+    else if (this.chaser.sub(dest).squareNorm() == 1) {
       this.killPlayer(tgPlayer);
       return;
     }
@@ -458,7 +457,7 @@ class Game {
     
     // Calculate how fast the runner should move:
     closestPlayer = this.closestPlayerTo(this.runner).pos;
-    const speedup = 2.94; // The maximum frequency multiplier.
+    const speedup = 2.92; // The maximum frequency multiplier.
     const power   = 5.8; // Increasing this shrinks high-urgency range.
     const dist    = dest.sub(closestPlayer).squareNorm();
     let   urgency = Math.pow((this.width + 1 - dist) / this.width, power);
@@ -492,8 +491,7 @@ class Game {
    * Truncates moves to offsets by one and chooses
    * diagonality.
    */
-  enemyDiffTrunc(origin, dest) {
-    const diff = dest.sub(origin);
+  enemyDiffTrunc(diff) {
     // If there's no diagonal part, truncate and return:
     if (diff.x == 0 || diff.y == 0 || diff.x == diff.y) {
       return diff.trunc(1);
@@ -523,10 +521,11 @@ class Game {
    * been temporarily removed.
    */
   enemyDest(origin, dest) {
-    const diff    = this.enemyDiffTrunc(origin, dest);
+    const diff    = this.enemyDiffTrunc(dest.sub(origin));
     const desired = origin.add(diff);
     const pref    = (altTile) => {
-      return origin.add(diff.mul(2)).sub(altTile.pos).linearNorm();
+      return -origin.add(diff.mul(2))
+        .sub(altTile.pos).linearNorm();
     }
     
     // Handle if the desired step-destination has a conflict:
@@ -534,8 +533,8 @@ class Game {
       this.isCharacter(this.tileAt(desired))) {
       // Choose one of the two best alternatives:
       let alts = this.adjacent(origin);
-      alts.sort((tA, tB) => pref(tB) - pref(tA));
-      if (alts.length > 3) alts = alts.slice(3);
+      alts.sort((tA, tB) => pref(tA) - pref(tB));
+      alts = alts.slice(-2);
       
       // Generate weights:
       const weights = new Map();
@@ -615,7 +614,6 @@ class Game {
         this.misses += 1;
         // Remove this Pos from the targets list:
         this.targets.splice(i, 1);
-        for (let player of this.livePlayers) { player.trimTrail(); }
         this.spawnTargets();
         break;
       }
@@ -630,12 +628,8 @@ class Game {
     
     // Handle if a method is requesting to
     // force the game to a certain state:
-    if (force == 'pause') {
-      this.paused = false;
-      this.togglePause();
-      return;
-    } else if (force == 'unpause') {
-      this.paused = true;
+    if (force == 'pause' || force == 'unpause') {
+      this.paused = force != 'pause';
       this.togglePause();
       return;
     }
@@ -685,12 +679,43 @@ class Game {
     }
   }
   
+  clearGrid() {
+    for (let tile of this.grid) {
+      tile.key = ' ';
+      tile.seq = '<br>';
+      tile.coloring = 'tile';
+    }
+  }
+  printStartPrompt() {
+    const middle = Math.floor(this.width / 2);
+    const message = ['press', 'any key', 'to start',];
+    const center = new Pos(
+      middle, middle - Math.ceil(message.length / 2)
+    );
+    // Prints a word on a line relative to the center:
+    const printWord = (word, lineOffset) => {
+      const charOffset = Math.floor(word.length / 2);
+      for (let i = 0; i < word.length; i++) {
+        const caret = this.tileAt(
+          center.add(new Pos(i - charOffset, lineOffset))
+        );
+        //caret.coloring = 'target';
+        caret.key = word[i];
+        caret.seq = word[i];
+      }
+    }
+    for (let i = 0; i < message.length; i++) {
+      printWord(message[i], i);
+    }
+  }
   updateTrackLevel() {
     const progress = (
       (this.enemyBaseSpeed() - this.speed.lb) / 
       (this.speed.ub - this.speed.lb)
     );
-    this.backgroundMusic.updateTrackLevel(progress);
+    this.backgroundMusic.updateTrackLevel(
+      progress / this.speed.fullBand
+    );
     this.progressBar.set(progress);
   }
   makeScoreElement(labelText) {
@@ -736,11 +761,10 @@ Game.enemies = {
   'nommer': ':O',
   'runner': ':D',
 };
-// span in [0.2, 5]
 Game.speeds = {
-  'slowest': {'lb': 0.17, 'ub': 0.45, 'fullBand': 0.16},
-  'slower':  {'lb': 0.26, 'ub': 0.53, 'fullBand': 0.32},
-  'normal':  {'lb': 0.35, 'ub': 1.60, 'fullBand': 0.48},
-  'faster':  {'lb': 0.59, 'ub': 1.70, 'fullBand': 0.55},
-  'fastest': {'lb': 0.86, 'ub': 1.80, 'fullBand': 0.60},
+  'slowest': {'lb': 0.17, 'ub': 0.45, 'fullBand': 0.19},
+  'slower':  {'lb': 0.26, 'ub': 0.53, 'fullBand': 0.33},
+  'normal':  {'lb': 0.35, 'ub': 1.60, 'fullBand': 0.50},
+  'faster':  {'lb': 0.59, 'ub': 1.70, 'fullBand': 0.57},
+  'fastest': {'lb': 0.86, 'ub': 1.80, 'fullBand': 0.70},
 };
