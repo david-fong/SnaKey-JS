@@ -132,7 +132,7 @@ class Player {
     if (net < 0 || this.trail.length > Math.pow(net, 3/7)) {
       // The last element of trail is the newest addition.
       // Here we want to evict the oldest addition (1st element).
-      let endTile = this.game.tileAt(this.trail.shift());
+      let endTile = this.game.tileAt(this.trail.shift()); // TODO: change to this.trail.trim()
       if (endTile.coloring == 'trail') {
         endTile.coloring = 'tile';
       }

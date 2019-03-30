@@ -46,28 +46,30 @@ function weightedChoice(weights) {
 
 
 /* Object keys:
- * -- width         : number - [10,30]
- * -- numTargets    : number
+ * -- width         : number:[10,30]
+ * -- numTargets    : number:N
  * -- populations   : {string: number}
- * -- grid          : array[Tile]
+ * -- grid          : [Tile, ]
  * -- language      : {string: string}
- * -- speed         : .ub, .lb
+ * -- speed         : .ub, .lb, .fullBand
  *
  * -- restartButton : <button>
  * -- pauseButton   : <button>
  * -- progressBar   : <span>
  *
- * -- targets       : array[Pos]
- * -- players       : array[Player]
+ * -- targets       : [Pos, ]
+ * -- players       : [Player, ]
  * -- chaser        : Pos
  * -- nommer        : Pos
  * -- runner        : Pos
- * -- heat          : number
+ * -- heat          : number:R
  * -- misses        : <span>
  *
  *
  * TODO:
  * work on tutorial pane.
+ * mute sound effects except movement when sound is muted.
+ * make smarter backtracking and integrate into player.
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
@@ -126,34 +128,40 @@ class Game {
     const bar = document.getElementById('lBar');
     
     // Setup button displays:
-    for (let bName of ['restart', 'pause', 'spice']) {
-      const btn = document.createElement('button');
-      btn.className = 'menuItem';
-      this[bName + 'Button'] = btn;
-      btn.innerHTML = bName;
-      bar.appendChild(btn);
-    }
+    const makeButtons = (() => {
+      for (let bName of ['restart', 'pause', 'spice']) {
+        const btn = document.createElement('button');
+        btn.className = 'menuItem';
+        this[bName + 'Button'] = btn;
+        btn.innerHTML = bName;
+        bar.appendChild(btn);
+      }
+      
+      // Assign callbacks to buttons:
+      this.restartButton.onclick = () => this.restart();
+      this.pauseButton.onclick   = () => this.togglePause();
+      this.spiceButton.onclick   = () => {
+        this.spiceButton.blur();
+        this.misses += 25;
+      }
+    })();
     
-    // Assign callbacks to buttons:
-    this.restartButton.onclick = () => this.restart();
-    this.pauseButton.onclick   = () => this.togglePause();
-    this.spiceButton.onclick   = () => {
-      this.spiceButton.blur();
-      this.misses += 25;
-    }
-    
-    // Progress bar slider: TODO:
-    const progress = document.createElement('div');
-    progress.className  = 'menuItem progress';
-    const chaserIcon    = new Tile(new Pos());
-    chaserIcon.key      = Game.enemies['chaser'];
-    chaserIcon.coloring = 'progress chaser';
-    progress.appendChild(chaserIcon.fInner);
-    progress.set = (val) => {
-      chaserIcon.fInner.style.left = 'calc(' + val + ' * (100% - var(--tileHt))';
-    }
-    bar.appendChild(progress);
-    this.progressBar = progress;
+    // Progress bar:
+    const makeProgress = (() => {
+      const progress = document.createElement('div');
+      progress.className  = 'menuItem progress';
+      const chaserIcon    = new Tile(new Pos());
+      chaserIcon.key      = Game.enemies['chaser'];
+      chaserIcon.coloring = 'progress chaser';
+      progress.appendChild(chaserIcon.fInner);
+      
+      progress.set = (val) => {
+        const calc = ['calc(', ' * (100% - var(--tileHt))', ];
+        chaserIcon.fInner.style.left = calc.join(val);
+      }
+      bar.appendChild(progress);
+      this.progressBar = progress;
+    })();
     
     // Score displays:
     for (let player of this.allPlayers) {

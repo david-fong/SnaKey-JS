@@ -58,7 +58,7 @@ function makeOptionsMenu(game, parentElement) {
   })();
   
   
-  // Difficulty: TODO
+  // Speed / Difficulty:
   const makeSpeedItem = (() => {
     const speedSel = document.createElement('select');
     speedSel.id        = 'speedSelect';
