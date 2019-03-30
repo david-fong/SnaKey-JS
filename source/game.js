@@ -57,8 +57,8 @@ function weightedChoice(weights) {
  * -- pauseButton   : <button>
  * -- progressBar   : <span>
  *
- * -- targets       : [Pos, ]
- * -- players       : [Player, ]
+ * -- targets       : [Pos,]
+ * -- players       : [Player,]
  * -- chaser        : Pos
  * -- nommer        : Pos
  * -- runner        : Pos
@@ -337,11 +337,12 @@ class Game {
   //   triggered by some incoming remote data package:
   movePlayer(event) {
     // Check if a single player wants to pause or restart:
-    if (this.allPlayers.length == 1 && event.key == 'Enter') {
-      if (event.shiftKey) this.restart();
-      else this.togglePause();
-    } else if (this.pauseButton.pauseOn) {
-      return;
+    if (event.key == 'Enter' && this.allPlayers.length == 1) {
+      if (event.shiftKey) {
+        this.restart();
+      } else if (!this.pauseButton.disabled) {
+        this.togglePause();
+      }
     }
     
     if (!event.shiftKey && event.key.length == 1) {
@@ -494,7 +495,6 @@ class Game {
     
   }
   
-  
   /* All enemy moves need to pass through this function:
    * Truncates moves to offsets by one and chooses
    * diagonality.
@@ -590,7 +590,10 @@ class Game {
     
     // Handle coloring:
     if (this.livePlayers.some((player) => {
-      return player.trail.some((trPos) => pos.equals(trPos));
+      const trailContents = player.trail.streamContents();
+      return trailContents.some(
+        (trPos) => pos.equals(trPos)
+      );
     })) {
       tile.coloring = 'trail';
     } else if (notHungry && 

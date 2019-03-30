@@ -17,6 +17,7 @@ class Player {
   constructor(game, num) {
     this.game   = game;
     this.num    = num;
+    this.trail = new Trail();
     this.score_ = game.makeScoreElement('score' + this.num);
   }
   
@@ -24,7 +25,7 @@ class Player {
    */
   restart() {
     this.score_.innerHTML = 0;
-    this.trail      = [];
+    this.trail.clear();
     this.moveStr    = '';
     this.startTime  = (new Date()).getSeconds();
     this.timeDeltas = [];
@@ -45,43 +46,41 @@ class Player {
     // If the player wants to backtrack:
     if (key == ' ') {
       // Fail if the trail is empty or choked by an enemy:
-      let trailTop = this.trail.slice(-1)[0];
-      if (trailTop == undefined || this.game.isCharacter(
-          this.game.tileAt(trailTop))) { return; }
-      this.moveOffOf(true);
-      this.moveOnto(this.trail.pop());
+      if (this.trail.isEmpty || this.game.isCharacter(
+          this.game.tileAt(this.trail.newest))) { return; }
+      this.moveOffOf();
+      this.moveOnto(this.trail.backtrack(this.pos));
       return;
     }
     
     // If the player didn't want to backtrack:
     this.moveStr += key.toLowerCase();
-    let destTiles = this.game.adjacent(this.pos).filter(
+    const destTiles = this.game.adjacent(this.pos).filter(
       (adjTile) => this.moveStr.endsWith(adjTile.seq)
     );
     // Handle if the player typed a sequence
     // corresponding to an adjacent tile:
     if (destTiles.length == 1) {
       this.moveStr = '';
-      let date = new Date();
+      const date = new Date();
       this.timeDeltas.push(date.getSeconds() - this.startTime);
       this.startTime = date.getSeconds();
       
       this.moveOffOf();
-      this.trail.push(this.pos);
-      this.trimTrail();
+      this.trail.pushNew(this.pos);
       this.moveOnto(destTiles[0].pos);
+      console.log(this.trail.frameView());
     }
   }
   
   /* Moves this player off of the grid.
    */
-  moveOffOf(backtrack=false) {
+  moveOffOf() {
     let tile = this.game.tileAt(this.pos);
     tile.key = ' ';
     tile.seq = '<br>';
     this.game.shuffle(this.pos);
-    if (backtrack) tile.coloring = 'tile';
-    else           tile.coloring = 'trail';
+    tile.coloring = 'trail';
   }
   
   /* Moves the player onto the position of the
@@ -96,6 +95,8 @@ class Player {
     game.populations[tile.key]--;
     this.prevPos  = this.pos;
     this.pos      = dest;
+    this.trimTrail(); // TODO: right now the trail cannot get shorter.
+    
     tile.coloring = 'player';
     tile.key      = Player.playerFace;
     tile.seq      = this.num;
@@ -105,11 +106,14 @@ class Player {
     
     // Check if the player landed on a target:
     for (let i = 0; i < game.targets.length; i++) {
+      
       // If the player landed on a target:
       if (dest.equals(game.targets[i])) {
         this.score += 1;
-        SoundEffects.playEffectFrom(Player.eatSounds);
         
+        if (!this.game.muted) {
+          SoundEffects.playEffectFrom(Player.eatSounds);
+        }
         game.heat = game.numTargets * Math.sqrt(
           game.heat / game.numTargets + 1);
         
@@ -126,13 +130,13 @@ class Player {
    * or whenever the player moves.
    */
   trimTrail() {
-    if (this.trail.length == 0) { return; }
+    if (this.trail.isEmpty) {
+      return;
+    }
     
     const net = this.score - (0.9 * this.game.misses);
     if (net < 0 || this.trail.length > Math.pow(net, 3/7)) {
-      // The last element of trail is the newest addition.
-      // Here we want to evict the oldest addition (1st element).
-      let endTile = this.game.tileAt(this.trail.shift()); // TODO: change to this.trail.trim()
+      const endTile = this.game.tileAt(this.trail.trim());
       if (endTile.coloring == 'trail') {
         endTile.coloring = 'tile';
       }
@@ -147,7 +151,8 @@ class Player {
     // TODO: play a death sound-effect here.
     
     // Erase the trail:
-    for (const trPos of this.trail) {
+    const trailContents = this.trail.streamContents();
+    for (const trPos of trailContents) {
       const trTile = this.game.tileAt(trPos);
       if (trTile.coloring == 'trail') {
         trTile.coloring = 'tile';
@@ -169,7 +174,7 @@ class Player {
    */
   avgPeriod() {
     this.timeDeltas = this.timeDeltas.slice(-5);
-    let totalTime = this.timeDeltas.reduce((a, b) => a + b, 0) + 
+    let totalTime = this.timeDeltas.reduce((a, b) => a + b, 0) + // TODO: get rid of initial value?
       (new Date()).getSeconds() - this.startTime;
     return totalTime / (this.timeDeltas.length + 1);
   }
