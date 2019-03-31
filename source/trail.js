@@ -9,109 +9,60 @@ class Trail {
     this.clear();
   }
   
-  /* Resets the contents of this trail.
-   */
+  // Resets the contents of this trail.
   clear() {
-    this.frames = [[], ];
-    this.backtrackStreak = false;
+    this.hist   = [];
+    this.length = 0;
+    this.streak = 0;
   }
   
-  /* Adds a new position element to this trail.
-   */
-  pushNew(pos) {
-    this.newestFrame.push(pos);
-    this.backtrackStreak = false;
+  // Private helper to evict unneeded history data.
+  add_(pos) {
+    if (this.hist.push(pos) > 2 * (this.length + 1)) {
+      this.hist.shift();
+    }
   }
   
-  /* Trims the trail by one element.
-   * Returns the evicted position.
-   * Assumes this.isEmpty is false.
+  // Adds a new position element to this trail.
+  pushNew(destPos) {
+    this.add_(destPos);
+    this.streak = 0;
+  }
+  
+  // Returns the backtracking destination.
+  backtrack(fromPos) {
+    this.add_(fromPos);
+    
+    // If the backtrack has come full circle:
+    if (this.hist.length - 2 * (this.streak + 1) < 0) {
+      this.hist = this.hist.slice(this.streak);
+      this.streak = 0;
+    }
+    // Increment streak and return backtrack destination:
+    const offset = 2 * (this.streak++ + 1);
+    return this.hist[this.hist.length - offset];
+  }
+  
+  /* Returns positions of all trail entries that
+   * were evicted to maintain the trail's length.
+   * Entries with surviving duplicates (using 
+   * .equals()) are filtered out of the return value.
    */
   trim() {
-    const evicted = this.frames[0].shift();
-    if (this.frames.length > 1 && this.frames[0].length == 0) {
-      this.frames.shift();
-    }
-    return evicted;
-  }
-  
-  /* 
-   */
-  backtrack(fromPos) {
-    if (this.isEmpty) return;
+    // 'Evict' only up to two entries per call.
+    const evictTotal = this.hist.length - this.length;
+    const histCopy = this.hist.slice();
+    const toEvict = histCopy.splice(0, Math.min(evictTotal, 2));
     
-    // If this backtrack was preceded by a regular move:
-    if (!this.backtrackStreak || this.frames.length == 1) {
-      const retval = this.newest;
-      this.frames.push([fromPos, ]);
-      this.backtrackStreak = true;
-      return retval;
-      
-    // If this backtrack followed another backtrack move:
-    } else {
-      const virtualFrame = this.frames[this.frames.length - 2];
-      const retval = virtualFrame.pop();
-      if (this.frames.length > 1 && virtualFrame.length == 0) {
-        this.frames.splice(-2, 1);
-      }
-      this.newestFrame.push(fromPos);
-      return retval;
-    }
+    return toEvict.filter((pos) => !histCopy.some(
+      (surviving) => surviving.equals(pos)
+    ));
   }
   
-  // Returns a flattened view of the contents of this trail.
-  streamContents() {
-    const stream = this.frames.reduce((a, b) => {
-      a.push(...b);
-      return a;
-    });
-    return stream;
-  }
-  
-  frameView() {
-    return this.frames.map((frame) => frame.slice());
-  }
-  
-  get isEmpty() {
-    return this.newestFrame.length == 0;
-  }
-  get length() {
-    return this.frames.reduce((a, b) => {
-      return a + b.length;
-    }, 0);
-  }
-  get newestFrame() {
-    return this.frames[this.frames.length - 1];
+  get empty() {
+    return this.hist.length == 0;
   }
   get newest() {
-    const top = this.newestFrame;
-    return top[top.length - 1];
-  }
-  get oldest() {
-    return this.frames[0][0];
+    return this.hist[this.hist.length - 1];
   }
 }
-
-/*{
-  const test = new Trail();
-  for (let i = 0; i < 10; i++)
-    test.pushNew(i);
-  
-  for (let i = 0; i < 5; i++)
-    console.log(test.backtrack());
-  console.log(test.frameView());
-  
-  for (let i = 0; i < 6; i++)
-    test.trim();
-  console.log(test.frameView());
-  
-  for (let i = 0; i < 6; i++) {
-    test.backtrack();
-    console.log(test.frameView());
-    console.log(test.length);
-  }
-  
-  test.trim();
-  console.log(test.frameView());
-  console.log(test.length);
-}*/

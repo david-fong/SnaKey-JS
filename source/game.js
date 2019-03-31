@@ -40,8 +40,7 @@ function weightedChoice(weights) {
     if (random < weight) return choice;
     else random -= weight;
   }
-  throw 'weights values either not all numbers, or all zero.\n' + 
-        '#entries: ' + weights.size + '. total weight: ' + totalWeight;
+  throw weights.values();
 }
 
 
@@ -232,9 +231,9 @@ class Game {
     let l = this.language;
     let neighbors = this.adjacent(pos, 2);
     for (let opt in this.language) {
-      if (!neighbors.some(nbTile => 
-        nbTile.seq.includes(l[opt]) ||
-        l[opt].includes(nbTile.seq)
+      if (!neighbors.some((nbTile) => 
+        (nbTile.seq.includes(l[opt]) ||
+        l[opt].includes(nbTile.seq))
       )) {
         valid.push(opt);
       }
@@ -243,7 +242,7 @@ class Game {
     // Initialize weights for valid keys and choose one:
     const weights = new Map();
     const lowest = Math.min(...Object.values(this.populations));
-    valid.forEach(key => weights.set(
+    valid.forEach((key) => weights.set(
       key, Math.pow(4, lowest - this.populations[key])
       ));
     const choice = weightedChoice(weights);
@@ -269,20 +268,19 @@ class Game {
     };
     
     // Get all valid target-spawn positions:
-    let choices = this.grid.filter(tile => 
+    let choices = this.grid.filter((tile) => 
       !this.isCharacter(tile) && 
       !this.targets.includes(tile.pos)
       );
-    choices = choices.map(tile => tile.pos);
+    choices = choices.map((tile) => tile.pos);
     let center = new Pos(
       Math.floor(this.width / 2),
       Math.floor(this.width / 2));
     
     const weights = new Map();
     for (let chPos of choices) {
-      const playersWeight = this.livePlayers.map((player) => {
-        return bell(player.pos, chPos, 1 / 3);
-      });
+      const playersWeight = this.livePlayers.map(
+        (player) => bell(player.pos, chPos, 1 / 3));
       weights.set(chPos, 
         5/3 * bell(center, chPos, 0.8) +
         (playersWeight.reduce((a, b) => a + b, 0) / this.livePlayers.length) + 
@@ -320,7 +318,7 @@ class Game {
     }
     // Filter out tiles that are characters:
     return neighbors.filter(
-      nbTile => nbTile.key in this.language);
+      (nbTile) => nbTile.key in this.language);
   }
   
   /* Returns the Player object closest in
@@ -589,12 +587,10 @@ class Game {
     this.shuffle(pos);
     
     // Handle coloring:
-    if (this.livePlayers.some((player) => {
-      const trailContents = player.trail.streamContents();
-      return trailContents.some(
+    if (this.livePlayers.some((player) =>
+      player.trail.hist.some(
         (trPos) => pos.equals(trPos)
-      );
-    })) {
+      ))) {
       tile.coloring = 'trail';
     } else if (notHungry && 
         this.targets.some((tgPos) => pos.equals(tgPos))) {
@@ -747,6 +743,9 @@ class Game {
   }
   set misses(val) {
     this.misses_.innerHTML = val;
+    for (const player of this.livePlayers) {
+      player.updateTrailMaxLength();
+    }
     this.updateTrackLevel();
   }
   get paused() {

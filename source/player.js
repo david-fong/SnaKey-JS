@@ -46,7 +46,7 @@ class Player {
     // If the player wants to backtrack:
     if (key == ' ') {
       // Fail if the trail is empty or choked by an enemy:
-      if (this.trail.isEmpty || this.game.isCharacter(
+      if (this.trail.empty || this.game.isCharacter(
           this.game.tileAt(this.trail.newest))) { return; }
       this.moveOffOf();
       this.moveOnto(this.trail.backtrack(this.pos));
@@ -69,7 +69,6 @@ class Player {
       this.moveOffOf();
       this.trail.pushNew(this.pos);
       this.moveOnto(destTiles[0].pos);
-      console.log(this.trail.frameView());
     }
   }
   
@@ -95,7 +94,7 @@ class Player {
     game.populations[tile.key]--;
     this.prevPos  = this.pos;
     this.pos      = dest;
-    this.trimTrail(); // TODO: right now the trail cannot get shorter.
+    this.trimTrail();
     
     tile.coloring = 'player';
     tile.key      = Player.playerFace;
@@ -125,18 +124,22 @@ class Player {
     }
   }
   
-  /* Used to moderate the player's trail length.
-   * Should be called whenever a target is consumed,
-   * or whenever the player moves.
+  /* Used to calculate the maximum length of 
+   * the player's trail. Call whenever the 
+   * inputs to the calculation change.
+   */
+  updateTrailMaxLength() {
+    let net = this.score - (0.9 * this.game.misses);
+    if (net < 0) net = 0;
+    this.trail.length = Math.round(net ** (3/7));
+  }
+  /* Used to un-color the trimmed portion of the trail.
+   * Call after every time the player moves, or the trail's
+   * maximum length is updated.
    */
   trimTrail() {
-    if (this.trail.isEmpty) {
-      return;
-    }
-    
-    const net = this.score - (0.9 * this.game.misses);
-    if (net < 0 || this.trail.length > Math.pow(net, 3/7)) {
-      const endTile = this.game.tileAt(this.trail.trim());
+    for (const evicted of this.trail.trim()) {
+      const endTile = this.game.tileAt(evicted);
       if (endTile.coloring == 'trail') {
         endTile.coloring = 'tile';
       }
@@ -151,8 +154,7 @@ class Player {
     // TODO: play a death sound-effect here.
     
     // Erase the trail:
-    const trailContents = this.trail.streamContents();
-    for (const trPos of trailContents) {
+    for (const trPos of this.trail.hist) {
       const trTile = this.game.tileAt(trPos);
       if (trTile.coloring == 'trail') {
         trTile.coloring = 'tile';
@@ -183,6 +185,7 @@ class Player {
   get score()    { return parseInt(this.score_.innerHTML ); }
   set score(val) {
     this.score_.innerHTML = val;
+    this.updateTrailMaxLength();
     this.game.updateTrackLevel();
   }
 }
