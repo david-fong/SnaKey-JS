@@ -54,7 +54,7 @@ class BGMTrack {
     track.volume = 0.0;
     
     track.addEventListener('timeupdate', () => {
-      const buffer = 0.30;
+      const buffer = 0.33;
       if (track.currentTime > track.duration - buffer) {
         track.currentTime = 0;
       }
@@ -121,9 +121,11 @@ class BackgroundMusic {
   /* Causes all tracks to stop playing.
    */
   pause() {
+    // Pause tracks:
     for (const track of this.tracks) {
       track.pause();
     }
+    // Realign tracks:
     for (const track of this.tracks) {
       track.currentTime = this.tracks[0].currentTime;
     }

@@ -67,14 +67,11 @@ function weightedChoice(weights) {
  *
  * TODO:
  * work on tutorial pane.
- * mute sound effects except movement when sound is muted.
  * fix bugs with the new backtracking.
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
- * set an interval to correct background track misalignments.
  * some kind of fun easter egg if you type specific words.
- * get rid of gaps in the background music loop.
  */
 class Game {
   constructor(width=21, numPlayers=1) {
@@ -190,8 +187,8 @@ class Game {
       this.populations.set(key, 0);
     }
     this.misses_.innerHTML  = 0;
-    this.heat     = 0;
-    this.targets  = [];
+    this.heat    = 0;
+    this.targets = [];
     
     // Despawn all characters and re-shuffle all tiles:
     this.clearGrid();
@@ -420,22 +417,28 @@ class Game {
    * hidden corner strategy. Speed is a funct-
    * ion of distance from the player.
    */
-  moveRunner(escape=false) {
+  moveRunner() {
     this.moveEnemyOffOf('runner', true);
     
     // First, handle if the runner was caught:
     const caught = () => this.livePlayers.some((player) =>
       player.pos.sub(this.runner).squareNorm() == 1 );
-    if (caught() && !escape) {
-      // TODO: Play the caught sound here:
-      this.misses = Math.floor(this.misses * 3 / 4);
-    }
     
-    let dest;
+    let dest, wasCaught = false;
     let closestPlayer = this.closestPlayerTo(this.runner).pos;
     
+    if (caught()) {
+      wasCaught = true;
+      // TODO: Play the caught sound here:
+      do {
+        dest = Pos.rand(this.width);
+      } while(this.isCharacter(this.tileAt(dest)) ||
+        this.livePlayers.some((player) => 
+          player.pos.sub(dest).squareNorm() <= 1));
+      this.misses = Math.floor(this.misses * 3 / 4);
+    
     // If the runner is a safe distance from the player:
-    if (this.runner.sub(closestPlayer).norm() >= this.width / 2.5) {
+    } else if (this.runner.sub(closestPlayer).norm() >= this.width / 2.5) {
       // Follow the chaser and bias away from the nommer:
       let fromNommer = this.runner.sub(this.nommer);
       fromNommer = fromNommer.mul(this.width/9/fromNommer.norm());
@@ -453,19 +456,19 @@ class Game {
     }
     
     // Execute the move:
-    dest = this.enemyDest(this.runner, dest);
+    if (!wasCaught) dest = this.enemyDest(this.runner, dest);
     this.moveEnemyOnto('runner', dest);
     
     // Calculate how fast the runner should move:
     closestPlayer = this.closestPlayerTo(this.runner).pos;
-    const speedup = 2.92; // The maximum frequency multiplier.
+    const speedup = 2.90; // The maximum frequency multiplier.
     const power   = 5.8; // Increasing this shrinks high-urgency range.
     const dist    = dest.sub(closestPlayer).squareNorm();
     let   urgency = Math.pow((this.width + 1 - dist) / this.width, power);
     urgency = urgency * (speedup - 1) + 1;
     
     // Setup the timed loop:
-    const loop = this.moveRunner.bind(this, caught());
+    const loop = this.moveRunner.bind(this);
     this.runnerCancel = setTimeout(loop, 1000 / urgency);
   }
   cornerStrat1() {
