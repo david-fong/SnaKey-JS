@@ -40,7 +40,7 @@ function weightedChoice(weights) {
     if (random < weight) return choice;
     else random -= weight;
   }
-  throw weights.values();
+  throw [...weights.values()];
 }
 
 
@@ -68,7 +68,7 @@ function weightedChoice(weights) {
  * TODO:
  * work on tutorial pane.
  * mute sound effects except movement when sound is muted.
- * make smarter backtracking and integrate into player.
+ * fix bugs with the new backtracking.
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.

@@ -137,7 +137,7 @@ body {
 }
 .trail, .target {
   transition-property:      background-color, color;
-  transition-duration:      0.5s; 
-  transition-timing-function: ease-in-out;
+  transition-duration:      0.65s; 
+  transition-timing-function: ease-out;
 }
 

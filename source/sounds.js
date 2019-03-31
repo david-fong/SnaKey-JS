@@ -37,7 +37,7 @@ class SoundEffects {
       })
     }
     // Shuffle that sound back into the list:
-    let insertAt = Math.floor(variants.length * Math.random());
+    let insertAt = Math.ceil(variants.length * Math.random());
     variants.splice(insertAt, 0, last, first);
   }
 }

@@ -38,6 +38,7 @@ class Trail {
       this.hist = this.hist.slice(this.streak);
       this.streak = 0;
     }
+    
     // Increment streak and return backtrack destination:
     const offset = 2 * (this.streak++ + 1);
     return this.hist[this.hist.length - offset];
@@ -52,7 +53,7 @@ class Trail {
     // 'Evict' only up to two entries per call.
     const evictTotal = this.hist.length - this.length;
     const histCopy = this.hist.slice();
-    const toEvict = histCopy.splice(0, Math.min(evictTotal, 2));
+    const toEvict = histCopy.splice(0, Math.min(evictTotal)); // , 2
     
     return toEvict.filter((pos) => !histCopy.some(
       (surviving) => surviving.equals(pos)
@@ -60,7 +61,7 @@ class Trail {
   }
   
   get empty() {
-    return this.hist.length == 0;
+    return this.length == 0;
   }
   get newest() {
     return this.hist[this.hist.length - 1];
