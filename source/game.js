@@ -47,7 +47,7 @@ function weightedChoice(weights) {
 /* Object keys:
  * -- width         : number:[10,30]
  * -- numTargets    : number:N
- * -- populations   : {string: number}
+ * -- populations   : Map{string: number}
  * -- grid          : [Tile, ]
  * -- language      : {string: string}
  * -- speed         : .ub, .lb, .fullBand
@@ -177,15 +177,17 @@ class Game {
   restart() {
     this.restartButton.blur();
     
-    this.language = languages[
-      document.getElementById('langSelect').value];
+    this.language = new Map(Object.entries(languages[
+      document.getElementById('langSelect').value]
+    ));
     this.speed = Object.assign({}, Game.speeds[
-      document.getElementById('speedSelect').value]);
+      document.getElementById('speedSelect').value]
+    );
       
     // Reset all display-key populations:
-    this.populations = {};
-    for (let key in this.language) {
-      this.populations[key] = 0;
+    this.populations = new Map();
+    for (const key of this.language.keys()) {
+      this.populations.set(key, 0);
     }
     this.misses_.innerHTML  = 0;
     this.heat     = 0;
@@ -227,31 +229,24 @@ class Game {
   shuffle(pos) {
     // Filter all keys, keeping those that
     // won't cause movement ambiguities:
-    const valid = [];
-    let l = this.language;
-    let neighbors = this.adjacent(pos, 2);
-    for (let opt in this.language) {
-      if (!neighbors.some((nbTile) => 
-        (nbTile.seq.includes(l[opt]) ||
-        l[opt].includes(nbTile.seq))
-      )) {
-        valid.push(opt);
-      }
-    }
-    
-    // Initialize weights for valid keys and choose one:
     const weights = new Map();
-    const lowest = Math.min(...Object.values(this.populations));
-    valid.forEach((key) => weights.set(
-      key, Math.pow(4, lowest - this.populations[key])
-      ));
+    const lowest = Math.min(...this.populations.values());
+    
+    const neighbors = this.adjacent(pos, 2);
+    this.language.forEach((val, key, map) => {
+      if (!neighbors.some((nbTile) => 
+        (nbTile.seq.includes(val) || val.includes(nbTile.seq))
+      )) {
+        weights.set(key, 4 ** (lowest - this.populations.get(key)));
+      }
+    }, this);
     const choice = weightedChoice(weights);
     
     // Handle choice:
-    this.populations[choice]++;
+    this.populations.set(choice, this.populations.get(choice) + 1);
     const tile = this.tileAt(pos);
     tile.key = choice;
-    tile.seq = this.language[choice];
+    tile.seq = this.language.get(choice);
   }
   
   /* Maintains a fixed number ot targets on the grid.
@@ -317,8 +312,7 @@ class Game {
       }
     }
     // Filter out tiles that are characters:
-    return neighbors.filter(
-      (nbTile) => nbTile.key in this.language);
+    return neighbors.filter((nbTile) => this.language.has(nbTile.key));
   }
   
   /* Returns the Player object closest in
@@ -607,7 +601,7 @@ class Game {
   moveEnemyOnto(character, dest, hungry=false) {
     const tile = this.tileAt(dest);
     if (this.isCharacter(tile)) throw 'cannot land on character.';
-    this.populations[tile.key]--;
+    this.populations.set(tile.key, this.populations.get(tile.key) - 1);
     this[character] = dest;
     tile.coloring   = character;
     tile.key = Game.enemies[character];
@@ -736,7 +730,7 @@ class Game {
     return counter;
   }
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
-  isCharacter(tile) { return !(tile.key in this.language); }
+  isCharacter(tile) { return !this.language.has(tile.key); }
   
   get misses() {
     return parseInt(this.misses_.innerHTML);
@@ -773,8 +767,8 @@ Game.enemies = {
 };
 Game.speeds = {
   'slowest': {'lb': 0.17, 'ub': 0.45, 'fullBand': 0.19},
-  'slower':  {'lb': 0.26, 'ub': 0.53, 'fullBand': 0.33},
-  'normal':  {'lb': 0.35, 'ub': 1.60, 'fullBand': 0.50},
+  'slower':  {'lb': 0.26, 'ub': 1.07, 'fullBand': 0.33},
+  'normal':  {'lb': 0.35, 'ub': 1.52, 'fullBand': 0.50},
   'faster':  {'lb': 0.59, 'ub': 1.70, 'fullBand': 0.57},
-  'fastest': {'lb': 0.86, 'ub': 1.80, 'fullBand': 0.70},
+  'fastest': {'lb': 0.86, 'ub': 1.76, 'fullBand': 0.70},
 };

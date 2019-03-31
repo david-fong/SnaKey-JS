@@ -129,9 +129,9 @@ class Player {
    * inputs to the calculation change.
    */
   updateTrailMaxLength() {
-    let net = this.score - (0.9 * this.game.misses);
+    let net = this.score - (this.game.misses);
     if (net < 0) net = 0;
-    this.trail.length = Math.round(net ** (3/7));
+    this.trail.length = Math.round(net ** 0.35);
   }
   /* Used to un-color the trimmed portion of the trail.
    * Call after every time the player moves, or the trail's
