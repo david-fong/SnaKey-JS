@@ -10,8 +10,8 @@ function makeOptionsMenu(game, parentElement) {
     'Type the character in an adjacent tile to move.',
     'Mouse-over a character to check how to type it.',
     'You can also move in diagonals!',
-    'Press \"' + Player.backtrackKey +
-      '\" to backtrack through your trail.',
+    'Press any of \"' + [...Player.backtrackKeys.values()] +
+      '\" to backtrack along your trail.',
 
     'Eat targets to increase your score.',
     'The game ends when the chaser \"' + 

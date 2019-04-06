@@ -54,7 +54,7 @@ class BGMTrack {
     track.volume = 0.0;
     
     track.addEventListener('timeupdate', () => {
-      const buffer = 0.33;
+      const buffer = 0.30;
       if (track.currentTime > track.duration - buffer) {
         track.currentTime = 0;
       }

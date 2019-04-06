@@ -47,8 +47,8 @@ function weightedChoice(weights) {
 /* Object keys:
  * -- width         : number:[10,30]
  * -- numTargets    : number:N
- * -- populations   : Map<string:number>
  * -- grid          : [Tile, ]
+ * -- populations   : Map<string:number>
  * -- language      : Map<string:string>
  * -- speed         : .ub, .lb, .fullBand
  *
@@ -57,12 +57,14 @@ function weightedChoice(weights) {
  * -- progressBar   : <span>
  *
  * -- targets       : [Pos,]
+ * -- corrupted     : [Pos,]
+ * -- heat          : number:R
+ * -- misses        : <span>
+ *
  * -- players       : [Player,]
  * -- chaser        : Pos
  * -- nommer        : Pos
  * -- runner        : Pos
- * -- heat          : number:R
- * -- misses        : <span>
  *
  *
  * TODO:
@@ -191,9 +193,10 @@ class Game {
     for (const key of this.language.keys()) {
       this.populations.set(key, 0);
     }
-    this.misses_.innerHTML  = 0;
-    this.heat    = 0;
-    this.targets = [];
+    this.targets   = [];
+    this.corrupted = [];
+    this.heat      = 0;
+    this.misses_.innerHTML = 0;
     
     // Despawn all characters and re-shuffle all tiles:
     this.clearGrid();
@@ -222,33 +225,103 @@ class Game {
     this.spiceButton.disabled = false;
   }
   
+  /* Freezes Game.enemies and disables player movement.
+   * Toggles the pause button to unpause on next click.
+   */
+  togglePause(force=undefined) {
+    this.pauseButton.blur();
+    
+    // Handle if a method is requesting to
+    // force the game to a certain state:
+    if (force == 'pause' || force == 'unpause') {
+      this.paused = force != 'pause';
+      this.togglePause();
+      return;
+    }
+    
+    // Freeze all the Game.enemies:
+    const that = this;
+    clearTimeout(that.chaserCancel);
+    clearTimeout(that.nommerCancel);
+    clearTimeout(that.runnerCancel);
+    
+    // The player pressed the pause button:
+    if (!this.paused) {
+      this.backgroundMusic.pause();
+      document.body.style.filter = 'var(--pauseFilter)';
+    // The user pressed the un-pause button:
+    } else {
+      if (!this.muted) {
+        this.backgroundMusic.play();
+      }
+      document.body.style.filter = '';
+      this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);
+      this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
+      this.runnerCancel = setTimeout(that.moveRunner.bind(that), 1000);
+    }
+    this.paused = !this.paused;
+  }
+  
+  /* Moves the chaser to player.pos and kills player.
+   * Assumes the chaser has already moved off the grid.
+   */
+  killPlayer(player) {
+    const deathSite = player.die(); // f
+    for (let i = 0; i < this.livePlayers.length; i++) {
+      if (this.livePlayers[i].num == player.num) {
+        this.livePlayers.splice(i, 1);
+        break;
+      }
+    }
+    this.moveEnemyOnto('chaser', deathSite);
+    
+    // If all players are dead, end
+    // the game and wait for a restart:
+    if (this.livePlayers.length == 0) {
+      this.pauseButton.disabled = true;
+      this.spiceButton.disabled = true;
+      this.togglePause('pause');
+    }
+  }
+  
+  
   /* Shuffles the key in the tile at pos.
    * Automatically increments the new key's
    * population record, but decrementing the 
    * previous key's population record is 
    * expected to be done externally.
    */
-  shuffle(pos) {
-    // Filter all keys, keeping those that
-    // won't cause movement ambiguities:
-    const weights = new Map();
-    const lowest = Math.min(...this.populations.values());
-    
-    const neighbors = this.adjacent(pos, 2);
-    this.language.forEach((val, key, map) => {
-      if (!neighbors.some((nbTile) => 
-        (nbTile.seq.includes(val) || val.includes(nbTile.seq))
-      )) {
-        weights.set(key, 4 ** (lowest - this.populations.get(key)));
-      }
-    }, this);
-    const choice = weightedChoice(weights);
-    
-    // Handle choice:
-    this.populations.set(choice, this.populations.get(choice) + 1);
-    const tile = this.tileAt(pos);
-    tile.key = choice;
-    tile.seq = this.language.get(choice);
+  shuffle(pos, corrupt=false) {
+    // If shuffling a tile:
+    if (!corrupt) {
+      // Filter all keys, keeping those that
+      // won't cause movement ambiguities:
+      const weights = new Map();
+      const lowest  = Math.min(...this.populations.values());
+      
+      const neighbors = this.adjacent(pos, 2);
+      this.language.forEach((val, key, map) => {
+        if (!neighbors.some((nbTile) => 
+          (nbTile.seq.includes(val) || val.includes(nbTile.seq))
+        )) {
+          weights.set(key, 4 ** (lowest - this.populations.get(key)));
+        }
+      }, this);
+      const choice = weightedChoice(weights);
+      
+      this.populations.set(choice, this.populations.get(choice) + 1);
+      const tile = this.tileAt(pos);
+      tile.key   = choice;
+      tile.seq   = this.language.get(choice);
+      
+    // If corrupting a tile:
+    } else {
+      this.corrupted.push(pos);
+      const tile = this.tileAt(pos);
+      tile.coloring = 'corrupt';
+      tile.key = '';
+      tile.seq = '#';
+    }
   }
   
   /* Maintains a fixed number ot targets on the grid.
@@ -257,6 +330,20 @@ class Game {
    * Call when a hungry character lands on a target.
    */
   spawnTargets() {
+    const weights = this.getItemSpawnWeights();
+    
+    // Spawn targets until the correct #targets is met:
+    while(this.targets.length < this.numTargets) {
+      const choice = weightedChoice(weights);
+      this.targets.push(choice);
+      this.tileAt(choice).coloring = 'target';
+      weights.delete(choice);
+    }
+  }
+  
+  /* Returns a map of 
+   */
+  getItemSpawnWeights() {
     // Radius is a scalar to this.width.
     const bell = (p1, p2, radius) => {
       const dist = p1.sub(p2).norm() / this.width;
@@ -274,25 +361,21 @@ class Game {
       Math.floor(this.width / 2),
       Math.floor(this.width / 2));
     
+    // Favor the center and bias against 
     const weights = new Map();
     for (let chPos of choices) {
-      const playersWeight = this.livePlayers.map(
-        (player) => bell(player.pos, chPos, 1 / 3));
+      const playersWeight = this.livePlayers.map((player) => 
+        bell(player.pos, chPos, 1/3)).reduce((a, b) => a + b);
+        
       weights.set(chPos, 
         5/3 * bell(center, chPos, 0.8) +
-        (playersWeight.reduce((a, b) => a + b, 0) / this.livePlayers.length) + 
+        (playersWeight / this.livePlayers.length) + 
         bell(this.nommer, chPos, 1/3)
       );
     }
-    
-    // Spawn targets until the correct #targets is met:
-    while(this.targets.length < this.numTargets) {
-      const choice = weightedChoice(weights);
-      this.targets.push(choice);
-      this.tileAt(choice).coloring = 'target';
-      weights.delete(choice);
-    }
+    return weights;
   }
+  
   
   /* Returns a collection of tiles in the 
    * (2*radius + 1)^2 area centered at pos,
@@ -327,8 +410,10 @@ class Game {
     return players[0];
   }
   
-  // TODO: this will need to somehow tell which player triggered the event.
-  //   triggered by some incoming remote data package:
+  /* TODO: this will need to somehow tell
+   * which player triggered the event.
+   * triggered by some incoming remote data package:
+   */
   movePlayer(event) {
     // Check if a single player wants to pause or restart:
     if (event.key == 'Enter' && this.allPlayers.length == 1) {
@@ -340,10 +425,11 @@ class Game {
     }
     // Ignore non-letter keys:
     if (event.key.length > 1 &&
-        event.key != Player.backtrackKey) {
+        !Player.backtrackKeys.has(event.key)) {
       return;
     }
-    
+    // Temporary way to decide which
+    // player the move belongs to:
     if (!event.shiftKey) {
       this.allPlayers[0].move(event.key);
     } else if (this.allPlayers.length > 1) {
@@ -500,6 +586,7 @@ class Game {
     
   }
   
+  
   /* All enemy moves need to pass through this function:
    * Truncates moves to offsets by one and chooses
    * diagonality.
@@ -623,8 +710,11 @@ class Game {
     // Check if a hungry character landed on a target:
     if (!hungry) { return; }
     for (let i = 0; i < this.targets.length; i++) {
-      // If a hungry character landed on a target:
       if (dest.equals(this.targets[i])) {
+        // Corrupt a random tile:
+        const corrupt = weightedChoice(this.getItemSpawnWeights());
+        this.shuffle(corrupt, true);
+        
         this.misses += 1;
         // Remove this Pos from the targets list:
         this.targets.splice(i, 1);
@@ -634,64 +724,6 @@ class Game {
     }
   }
   
-  /* Freezes Game.enemies and disables player movement.
-   * Toggles the pause button to unpause on next click.
-   */
-  togglePause(force=undefined) {
-    this.pauseButton.blur();
-    
-    // Handle if a method is requesting to
-    // force the game to a certain state:
-    if (force == 'pause' || force == 'unpause') {
-      this.paused = force != 'pause';
-      this.togglePause();
-      return;
-    }
-    
-    // Freeze all the Game.enemies:
-    const that = this;
-    clearTimeout(that.chaserCancel);
-    clearTimeout(that.nommerCancel);
-    clearTimeout(that.runnerCancel);
-    
-    // The player pressed the pause button:
-    if (!this.paused) {
-      this.backgroundMusic.pause();
-      document.body.style.filter = 'var(--pauseFilter)';
-    // The user pressed the un-pause button:
-    } else {
-      if (!this.muted) {
-        this.backgroundMusic.play();
-      }
-      document.body.style.filter = '';
-      this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);
-      this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
-      this.runnerCancel = setTimeout(that.moveRunner.bind(that), 1000);
-    }
-    this.paused = !this.paused;
-  }
-  
-  /* Moves the chaser to player.pos and kills player.
-   * Assumes the chaser has already moved off the grid.
-   */
-  killPlayer(player) {
-    const deathSite = player.die(); // f
-    for (let i = 0; i < this.livePlayers.length; i++) {
-      if (this.livePlayers[i].num == player.num) {
-        this.livePlayers.splice(i, 1);
-        break;
-      }
-    }
-    this.moveEnemyOnto('chaser', deathSite);
-    
-    // If all players are dead, end
-    // the game and wait for a restart:
-    if (this.livePlayers.length == 0) {
-      this.pauseButton.disabled = true;
-      this.spiceButton.disabled = true;
-      this.togglePause('pause');
-    }
-  }
   
   clearGrid() {
     for (let tile of this.grid) {

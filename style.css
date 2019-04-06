@@ -73,6 +73,7 @@ body {
   width:            85%;
   display:          none;
   text-overflow:    clip;
+  white-space:      pre-wrap;
 }
 .progress {
   color:            black;
@@ -124,6 +125,8 @@ body {
           background-color: var(--tileBg);
           color:            var(--tileFg);  }
 .target { background-color: var(--target);  }
+.corrupt {background-color: var(--tileBg);  
+          opacity:          0.65;           }
 .player { background-color: var(--player);  }
 .trail  { background-color: var(--trailBg);
           color:            var(--trailFg); }
@@ -135,8 +138,8 @@ body {
 .flip-inner [class$='er'], .target {
   box-shadow: 0 0 0px 0.08em white inset;
 }
-.trail, .target {
-  transition-property:      background-color, color;
+.trail, .target, .corrupt {
+  transition-property:      background-color, color, opacity;
   transition-duration:      0.65s;
   transition-timing-function: ease;
 }

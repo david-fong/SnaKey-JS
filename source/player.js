@@ -44,7 +44,7 @@ class Player {
     if (this.isDead) return;
     
     // If the player wants to backtrack:
-    if (key == Player.backtrackKey) {
+    if (Player.backtrackKeys.has(key)) {
       // Fail if the trail is empty or choked by an enemy:
       if (this.trail.empty || this.game.isCharacter(
           this.game.tileAt(this.trail.newest))) { return; }
@@ -92,7 +92,7 @@ class Player {
     const tile = game.tileAt(dest);
     
     // Draw/make the changes:
-    game.populations[tile.key]--;
+    game.populations.set(tile.key, game.populations.get(tile.key) - 1);
     this.prevPos  = this.pos;
     this.pos      = dest;
     this.trimTrail();
@@ -106,20 +106,23 @@ class Player {
     
     // Check if the player landed on a target:
     for (let i = 0; i < game.targets.length; i++) {
-      
-      // If the player landed on a target:
       if (dest.equals(game.targets[i])) {
         this.score += 1;
-        
-        if (!this.game.muted) {
-          SoundEffects.playEffectFrom(Player.eatSounds);
-        }
+        if (!this.game.muted) SoundEffects.playEffectFrom(Player.eatSounds);
         game.heat = game.numTargets * Math.sqrt(
           game.heat / game.numTargets + 1);
         
         // Remove this Pos from the targets list:
         game.targets.splice(i, 1);
         game.spawnTargets();
+        
+        // Restore the oldest corrupted tile:
+        if (game.corrupted.length > 0) {
+          const restore = game.corrupted.shift();
+          game.shuffle(restore);
+          game.tileAt(restore).coloring = 'tile';
+          
+        }
         break;
       }
     }
@@ -212,7 +215,7 @@ class Player {
     } else return false;
   }
 }
-Player.playerFace   = ':|';
-Player.backtrackKey = 'Backspace';
-Player.moveSounds   = SoundEffects.makeVariants('move', 9);
-Player.eatSounds    = SoundEffects.makeVariants('eat',  5, 0.3);
+Player.playerFace    = ':|';
+Player.backtrackKeys = new Set(['Backspace', ' ', ]);
+Player.moveSounds    = SoundEffects.makeVariants('move', 9);
+Player.eatSounds     = SoundEffects.makeVariants('eat',  5, 0.3);
