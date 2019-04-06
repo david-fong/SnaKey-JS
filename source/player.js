@@ -44,7 +44,7 @@ class Player {
     if (this.isDead) return;
     
     // If the player wants to backtrack:
-    if (key == ' ') {
+    if (key == Player.backtrackKey) {
       // Fail if the trail is empty or choked by an enemy:
       if (this.trail.empty || this.game.isCharacter(
           this.game.tileAt(this.trail.newest))) { return; }
@@ -55,6 +55,7 @@ class Player {
     
     // If the player didn't want to backtrack:
     this.moveStr += key.toLowerCase();
+    if (this.matchEasterEgg()) return;
     const destTiles = this.game.adjacent(this.pos).filter(
       (adjTile) => this.moveStr.endsWith(adjTile.seq)
     );
@@ -188,7 +189,30 @@ class Player {
     this.updateTrailMaxLength();
     this.game.updateTrackLevel();
   }
+  
+  // :O
+  matchEasterEgg() {
+    let dest = undefined;
+    
+    // Teleportation:
+    if (this.moveStr.split('tp').length > 2) {
+      console.log(this.moveStr);
+      this.moveStr = '';
+      do {
+        dest = Pos.rand(this.game.width);
+      } while(this.game.isCharacter(this.game.tileAt(dest))
+        || dest.sub(this.game.chaser).norm() <= 4);
+    }
+    
+    if (dest != undefined) {
+      this.moveOffOf();
+      this.trail.pushNew(this.pos);
+      this.moveOnto(dest);
+      return true;
+    } else return false;
+  }
 }
-Player.playerFace = ':|';
-Player.moveSounds = SoundEffects.makeVariants('move', 9);
-Player.eatSounds  = SoundEffects.makeVariants('eat',  5, 0.3);
+Player.playerFace   = ':|';
+Player.backtrackKey = 'Backspace';
+Player.moveSounds   = SoundEffects.makeVariants('move', 9);
+Player.eatSounds    = SoundEffects.makeVariants('eat',  5, 0.3);

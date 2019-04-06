@@ -47,9 +47,9 @@ function weightedChoice(weights) {
 /* Object keys:
  * -- width         : number:[10,30]
  * -- numTargets    : number:N
- * -- populations   : Map{string: number}
+ * -- populations   : Map<string:number>
  * -- grid          : [Tile, ]
- * -- language      : {string: string}
+ * -- language      : Map<string:string>
  * -- speed         : .ub, .lb, .fullBand
  *
  * -- restartButton : <button>
@@ -71,7 +71,6 @@ function weightedChoice(weights) {
  * 
  * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
- * some kind of fun easter egg if you type specific words.
  */
 class Game {
   constructor(width=21, numPlayers=1) {
@@ -105,12 +104,18 @@ class Game {
     // Make menus:
     window.onblur = () => this.togglePause('pause');
     this.makeLowerBar();
-    makeOptionsMenu(this, document.getElementById('rBar'));
+    makeOptionsMenu(this, document.getElementById('optionsBar'));
     
     // Setup invariants and then prompt the player to start the game:
     for (const enemy in Game.enemies) { this[enemy] = new Pos(); }
     this.clearGrid();
     this.printStartPrompt();
+    window.addEventListener('keydown', (event) => {
+      if (event.keyCode == 32 && event.target == document.body) {
+        event.preventDefault();
+        return false;
+      }
+    });
     document.body.onkeydown = () => {
       this.restart();
       document.body.onkeydown = () => this.movePlayer(event);
@@ -121,7 +126,7 @@ class Game {
    * and also score and misses counters.
    */
   makeLowerBar() {
-    const bar = document.getElementById('lBar');
+    const bar = document.getElementById('scoringBar');
     
     // Setup button displays:
     const makeButtons = (() => {
@@ -333,8 +338,13 @@ class Game {
         this.togglePause();
       }
     }
+    // Ignore non-letter keys:
+    if (event.key.length > 1 &&
+        event.key != Player.backtrackKey) {
+      return;
+    }
     
-    if (!event.shiftKey && event.key.length == 1) {
+    if (!event.shiftKey) {
       this.allPlayers[0].move(event.key);
     } else if (this.allPlayers.length > 1) {
       this.allPlayers[1].move(event.key);

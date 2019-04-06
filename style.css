@@ -26,14 +26,14 @@ body {
   align-content:    flex-start;
   flex-flow:        row wrap;
 }
-#lBar { order: 0; }
-#rBar { order: 2; }
+#scoringBar { order: 2; }
+#optionsBar { order: 0; }
 #cBar { order: 1; }
 /* Move menu bars under grid 
  * when aspect ratio decreases. */
 @media (max-aspect-ratio: 4/3) {
-  #lBar { order: 1; }
-  #rBar { order: 2; }
+  #scoringBar { order: 2; }
+  #optionsBar { order: 1; }
   #cBar { order: 0; }
   .menuBar { flex-basis: 45%; }
 }
@@ -137,7 +137,7 @@ body {
 }
 .trail, .target {
   transition-property:      background-color, color;
-  transition-duration:      0.65s; 
-  transition-timing-function: ease-out;
+  transition-duration:      0.65s;
+  transition-timing-function: ease;
 }
 

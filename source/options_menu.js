@@ -7,53 +7,52 @@ function makeOptionsMenu(game, parentElement) {
   // Tutorial:
   const makeTutorial = (() => {
     const messages = [
-    '0. Type the character in an adjacent tile to move.',
-    '1. Mouse-over a character to check how to type it.',
-    '2. You can also move in diagonals!',
+    'Type the character in an adjacent tile to move.',
+    'Mouse-over a character to check how to type it.',
+    'You can also move in diagonals!',
+    'Press \"' + Player.backtrackKey +
+      '\" to backtrack through your trail.',
 
-    '3. Eat targets to increase your score.',
-    '4. The game ends when the chaser catches you.',
-    '5. The chaser speeds up based on your score.' +
-    '   (And also how many targets you\'ve missed)',
+    'Eat targets to increase your score.',
+    'The game ends when the chaser \"' + 
+      Game.enemies['chaser'] + '\" catches you.',
+    'The chaser speeds up based on your score. ' +
+      '(And also how many targets you\'ve missed)',
 
-    '7. Misses come from targets eaten by the nommer.',
-    '8. The nommer cannot attack you.',
-    '9. Misses make the game more difficult' +
-    '   without improving your final score.',
+    'Misses come from targets eaten by the nommer: \"' + 
+      Game.enemies['nommer'] + '\"',
+    'The nommer cannot kill you.',
+    'Misses make the game more difficult ' +
+      'without improving your final score.',
 
-    '10. Wouldn\'t it be nice if there was a way' +
-    '   to cut down your misses? (spoiler: there is)',
-    '11. If you catch (go right beside) the runner,' +
-    '   your misses will be cut down by a third.',
+    'Wouldn\'t it be nice if there was a way ' +
+      'to cut down your misses? (spoiler: there is)',
+    ' If you catch (go right beside) the runner, \"' +
+      Game.enemies['runner'] +
+      '\", your misses will be cut down by a fraction.',
 
-    '12. If you find the game too easy, press the' +
-    '   spice button to boost your miss count.',
-    'tutorial',
+    'If you find the game too easy, press the ' +
+      'spice button to boost your miss count.',
     ];
-    const tutorial = document.createElement('div');
+    const tutorial      = document.createElement('div');
     tutorial.className  = 'tutorial menuItem';
-    tutorial.pageNumber = messages.length - 2;
-    const pages = [];
+    tutorial.pageNumber = messages.length - 1;
+    const pages         = [];
     for (let i = 0; i < messages.length; i++) {
       const page = document.createElement('div');
-      page.innerHTML = messages[i];
+      page.innerHTML = i + '. ' + messages[i];
       pages.push(page);
       tutorial.appendChild(page);
     }
-    tutorial.onclick = () => {
-      pages.slice(-1)[0].style.display = '';
-      const shuffle = () => {
-        pages[tutorial.pageNumber].style.display = '';
-        tutorial.pageNumber++;
-        tutorial.pageNumber %= messages.length - 1;
-        pages[tutorial.pageNumber].style.display = 'initial';
-      }
-      shuffle();
-      tutorial.onclick = shuffle;
+    // Scroll through tutorial messages on click:
+    const shuffle = () => {
+      pages[tutorial.pageNumber].style.display = '';
+      tutorial.pageNumber++;
+      tutorial.pageNumber %= messages.length;
+      pages[tutorial.pageNumber].style.display = 'initial';
     }
-    const cover = pages.slice(-1)[0].style;
-    cover.display = 'initial';
-    cover.textDecoration = 'underline';
+    shuffle();
+    tutorial.onclick = shuffle;
     parentElement.appendChild(tutorial);
   })();
   
