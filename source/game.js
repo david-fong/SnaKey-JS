@@ -505,7 +505,7 @@ class Game {
     
     // Setup the timed loop:
     const loop = this.moveNommer.bind(this);
-    const speed = this.enemyBaseSpeed(0.05) * (this.heat / 5 + 1);
+    const speed = this.enemyBaseSpeed(/*0.05*/) * (this.heat / 5 + 1);
     this.nommerCancel = setTimeout(loop, 1000 / speed);
   }
   
@@ -713,7 +713,7 @@ class Game {
       if (dest.equals(this.targets[i])) {
         // Corrupt a random tile:
         const corrupt = weightedChoice(this.getItemSpawnWeights());
-        this.shuffle(corrupt, true);
+        this.shuffle(corrupt, Game.doNommerCorrupt);
         
         this.misses += 1;
         // Remove this Pos from the targets list:
@@ -810,6 +810,7 @@ Game.enemies = {
   'nommer': ':O',
   'runner': ':D',
 };
+Game.doNommerCorrupt = false;
 Game.speeds = {
   'slowest': {'lb': 0.17, 'ub': 0.45, 'fullBand': 0.19},
   'slower':  {'lb': 0.26, 'ub': 1.07, 'fullBand': 0.33},

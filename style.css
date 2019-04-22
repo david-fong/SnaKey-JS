@@ -28,13 +28,13 @@ body {
 }
 #scoringBar { order: 2; }
 #optionsBar { order: 0; }
-#cBar { order: 1; }
+#gameBar { order: 1; }
 /* Move menu bars under grid 
  * when aspect ratio decreases. */
 @media (max-aspect-ratio: 4/3) {
   #scoringBar { order: 2; }
   #optionsBar { order: 1; }
-  #cBar { order: 0; }
+  #gameBar { order: 0; }
   .menuBar { flex-basis: 45%; }
 }
 
