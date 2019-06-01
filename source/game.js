@@ -4,15 +4,18 @@
  */
 class Tile {
   constructor(pos) {
-    this.pos    = pos;
-    this.fInner = document.createElement('div');
-    this.fInner.className = 'flip-inner';
+    this.pos   = pos;
+    
+    // This will carry character-specific coloring:
+    this.face_ = document.createElement('div');
     
     this.front_ = document.createElement('div');
     this.back_  = document.createElement('div');
+    this.front_.className = 'front';
+    this.back_.className  = 'back';
 
-    this.fInner.appendChild(this.front_);
-    this.fInner.appendChild(this.back_);
+    this.face_.appendChild(this.front_);
+    this.face_.appendChild(this.back_);
   }
   
   get key()    { return this.front_.innerHTML; }
@@ -22,11 +25,15 @@ class Tile {
   set seq(seq) { this.back_.innerHTML = seq;   }
   
   get coloring() {
-    return this.front_.className;
+    return this.face_.className;
   }
   set coloring(cl) {
-    this.front_.className = cl;
-    this.back_.className  = cl;
+    this.face_.className = cl;
+  }
+  set opacity(opacity) {
+    this.front_.style.opacity = opacity;
+    this.back_.style.opacity  = opacity;
+    //this.front_.style.WebkitFilter = 'blur(500%)';
   }
 }
 
@@ -71,11 +78,10 @@ function weightedChoice(weights) {
  * work on tutorial pane.
  * fix bugs with the new backtracking.
  * 
- * Cookies for: name, high-score(score, misses), version.
  * make game runner_catch and gameover sounds.
  */
 class Game {
-  constructor(width=21, numPlayers=1) {
+  constructor(width=Game.defaultWidth, numPlayers=1) {
     if (width < 10) width = 10;
     if (width > 30) width = 30;
     this.grid       = [];
@@ -92,7 +98,7 @@ class Game {
         const cell = row.insertCell();
         const tile = new Tile(new Pos(x, y));
         this.grid.push(tile);
-        cell.appendChild(tile.fInner);
+        cell.appendChild(tile.face_);
       }
     }
     // Initialize background music with all 12 tracks:
@@ -156,11 +162,11 @@ class Game {
       const chaserIcon    = new Tile(new Pos());
       chaserIcon.key      = Game.enemies['chaser'];
       chaserIcon.coloring = 'progress chaser';
-      progress.appendChild(chaserIcon.fInner);
+      progress.appendChild(chaserIcon.face_);
       
       progress.set = (val) => {
         const calc = ['calc(', ' * (100% - var(--tileHt))', ];
-        chaserIcon.fInner.style.left = calc.join(val);
+        chaserIcon.face_.style.left = calc.join(val);
       }
       bar.appendChild(progress);
       this.progressBar = progress;
@@ -200,9 +206,10 @@ class Game {
     
     // Despawn all characters and re-shuffle all tiles:
     this.clearGrid();
-    for (let tile of this.grid) {
+    this.grid.forEach((tile) => {
       this.shuffle(tile.pos);
-    }
+      tile.opacity = 0;
+    });
     
     // Spawn players:
     this.livePlayers = this.allPlayers.slice();
@@ -381,15 +388,16 @@ class Game {
    * (2*radius + 1)^2 area centered at pos,
    * all satisfying the condition that they
    * do not contain the player or an enemy,
-   * and are inside the grid:
+   * and are inside the grid.
+   * radius must be an integer value:
    */
   adjacent(pos, radius=1) {
-    // Get all neighboring tiles in (2*radius + 1)^2 area:
     const yLower = Math.max(0,          pos.y - radius);
     const yUpper = Math.min(this.width, pos.y + radius + 1);
     const xLower = Math.max(0,          pos.x - radius);
     const xUpper = Math.min(this.width, pos.x + radius + 1);
     
+    // Get all neighboring tiles in (2*radius + 1)^2 area:
     const neighbors = [];
     for (let y = yLower; y < yUpper; y++) {
       for (let x = xLower; x < xUpper; x++) {
@@ -397,7 +405,7 @@ class Game {
       }
     }
     // Filter out tiles that are characters:
-    return neighbors.filter((nbTile) => this.language.has(nbTile.key));
+    return neighbors.filter((nbTile) => this.isCharacter(nbTile.key));
   }
   
   /* Returns the Player object closest in
@@ -677,7 +685,6 @@ class Game {
     const pos  = this[character];
     const tile = this.tileAt(pos);
     tile.key = ' ';
-    tile.key = '<br>';
     this.shuffle(pos);
     
     // Handle coloring:
@@ -712,8 +719,10 @@ class Game {
     for (let i = 0; i < this.targets.length; i++) {
       if (dest.equals(this.targets[i])) {
         // Corrupt a random tile:
-        const corrupt = weightedChoice(this.getItemSpawnWeights());
-        this.shuffle(corrupt, Game.doNommerCorrupt);
+        if (Game.doNommerCorrupt) {
+          const corrupt = weightedChoice(this.getItemSpawnWeights());
+          this.shuffle(corrupt, true);
+        }
         
         this.misses += 1;
         // Remove this Pos from the targets list:
@@ -775,7 +784,7 @@ class Game {
     return counter;
   }
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
-  isCharacter(tile) { return !this.language.has(tile.key); }
+  isCharacter(tile) { return !this.populations.has(tile.key); }
   
   get misses() {
     return parseInt(this.misses_.innerHTML);
@@ -803,8 +812,10 @@ class Game {
   }
 }
 // Game base settings:
-Game.targetThinness = 72;
-Game.defaultNumTargets = 20 * 20 / Game.targetThinness;
+Game.defaultWidth      = 21;
+Game.targetThinness    = 72;
+Game.defaultNumTargets = Game.defaultWidth ** 2 / Game.targetThinness;
+Game.spotlightRadius   = 11;
 Game.enemies = {
   'chaser': ':>',
   'nommer': ':O',

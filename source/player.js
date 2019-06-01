@@ -126,6 +126,15 @@ class Player {
         break;
       }
     }
+    
+    // Fade out letters that are far away:
+    const radius = Game.spotlightRadius;
+    this.game.adjacent(this.pos, radius).forEach((tile) => {
+      let opacity = radius - tile.pos.sub(this.pos).norm();
+      if (opacity < 1) opacity = 0;
+      opacity = (opacity / radius) ** 0.7;
+      tile.opacity = '' + opacity;
+    });
   }
   
   /* Used to calculate the maximum length of 
