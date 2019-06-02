@@ -55,8 +55,8 @@ function weightedChoice(weights) {
  * -- width         : number:[10,30]
  * -- numTargets    : number:N
  * -- grid          : [Tile, ]
- * -- populations   : Map<string:number>
- * -- language      : Map<string:string>
+ * -- populations   : Map<string:number> lang character -> kbd sequence
+ * -- language      : Map<string:string> lang character -> occurences
  * -- speed         : .ub, .lb, .fullBand
  *
  * -- restartButton : <button>
@@ -89,6 +89,14 @@ class Game {
     this.numTargets = Math.pow(this.width, 2) / Game.targetThinness;
     document.documentElement.style.setProperty('--width-in-tiles', width);
     
+    // Disable scroll-down via spacebar:
+    window.addEventListener('keydown', (event) => {
+      if (event.keyCode == 32 && event.target == document.body) {
+        event.preventDefault();
+        return false;
+      }
+    });
+    
     // Initialize Table display:
     const dGrid = document.getElementById('grid');
     for (let y = 0; y < width; y++) {
@@ -116,17 +124,16 @@ class Game {
     
     // Setup invariants and then prompt the player to start the game:
     for (const enemy in Game.enemies) { this[enemy] = new Pos(); }
-    this.clearGrid();
-    this.printStartPrompt();
-    window.addEventListener('keydown', (event) => {
-      if (event.keyCode == 32 && event.target == document.body) {
-        event.preventDefault();
-        return false;
-      }
-    });
+    this.printStartPrompt('PRESS;SHIFT;ENTER;--2--;START');
+    
     document.body.onkeydown = () => {
-      this.restart();
-      document.body.onkeydown = () => this.movePlayer(event);
+        this.restart();
+        document.body.onkeydown = () => this.movePlayer(event);
+      // Wait for the printed text to fade,
+      // and then boot up the game :)
+      const begin = (() => {
+      }).bind(this);
+      setTimeout(begin, 500);
     }
   }
   
@@ -208,8 +215,7 @@ class Game {
     this.clearGrid();
     this.grid.forEach((tile) => {
       this.shuffle(tile.pos);
-      tile.opacity = 0;
-    });
+    }, this);
     
     // Spawn players:
     this.livePlayers = this.allPlayers.slice();
@@ -222,7 +228,9 @@ class Game {
       this.moveEnemyOnto(enemy, slots.shift());
     }
     // Spawn targets:
+    console.log('spawning targets');
     this.spawnTargets();
+    console.log('done');
     
     // Start the characters moving:
     this.updateTrackLevel();
@@ -241,7 +249,7 @@ class Game {
     // Handle if a method is requesting to
     // force the game to a certain state:
     if (force == 'pause' || force == 'unpause') {
-      this.paused = force != 'pause';
+      this.paused = (force != 'pause');
       this.togglePause();
       return;
     }
@@ -256,6 +264,7 @@ class Game {
     if (!this.paused) {
       this.backgroundMusic.pause();
       document.body.style.filter = 'var(--pauseFilter)';
+      
     // The user pressed the un-pause button:
     } else {
       if (!this.muted) {
@@ -266,7 +275,7 @@ class Game {
       this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
       this.runnerCancel = setTimeout(that.moveRunner.bind(that), 1000);
     }
-    this.paused = !this.paused;
+    this.paused = !(this.paused);
   }
   
   /* Moves the chaser to player.pos and kills player.
@@ -359,10 +368,10 @@ class Game {
     };
     
     // Get all valid target-spawn positions:
-    let choices = this.grid.filter((tile) => 
-      !this.isCharacter(tile) && 
-      !this.targets.includes(tile.pos)
-      );
+    let choices = this.grid.filter((tile) => {
+      return (!(this.isCharacter(tile)) && 
+      !(this.targets.includes(tile.pos)))
+    }, this);
     choices = choices.map((tile) => tile.pos);
     let center = new Pos(
       Math.floor(this.width / 2),
@@ -405,7 +414,9 @@ class Game {
       }
     }
     // Filter out tiles that are characters:
-    return neighbors.filter((nbTile) => this.isCharacter(nbTile.key));
+    return neighbors.filter((nbTile) => {
+      return !(this.isCharacter(nbTile));
+    }, this);
   }
   
   /* Returns the Player object closest in
@@ -424,16 +435,26 @@ class Game {
    */
   movePlayer(event) {
     // Check if a single player wants to pause or restart:
-    if (event.key == 'Enter' && this.allPlayers.length == 1) {
+    if (event.key == 'Enter') {
+      // If only one player is online, they may
+      // restart while the game is not over.
       if (event.shiftKey) {
-        this.restart();
+        if (this.allPlayers.length == 1) {
+          this.restart();
+        }
+      // Any player currently online can pause or
+      // unpause the game while the game is not over.
       } else if (!this.pauseButton.disabled) {
         this.togglePause();
       }
+      
+    // The players cannot move while the game is paused:
+    } else if (this.paused) {
+      return;
     }
+    
     // Ignore non-letter keys:
-    if (event.key.length > 1 &&
-        !Player.backtrackKeys.has(event.key)) {
+    if (event.key.length > 1 && !(Player.backtrackKeys.has(event.key))) {
       return;
     }
     // Temporary way to decide which
@@ -739,11 +760,15 @@ class Game {
       tile.key = ' ';
       tile.seq = '<br>';
       tile.coloring = 'tile';
+      tile.opacity = 0;
     }
   }
-  printStartPrompt() {
+  // Caution: This will clear all grid information.
+  printStartPrompt(string) {
+    this.clearGrid();
+    
     const middle = Math.floor(this.width / 2);
-    const message = ['press', 'any key', 'to start',];
+    const message = string.split(';');;
     const center = new Pos(
       middle, middle - Math.ceil(message.length / 2)
     );
@@ -757,6 +782,7 @@ class Game {
         //caret.coloring = 'target';
         caret.key = word[i];
         caret.seq = word[i];
+        caret.opacity = 1;
       }
     }
     for (let i = 0; i < message.length; i++) {
@@ -784,7 +810,7 @@ class Game {
     return counter;
   }
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
-  isCharacter(tile) { return !this.populations.has(tile.key); }
+  isCharacter(tile) { return !(this.language.has(tile.key)); }
   
   get misses() {
     return parseInt(this.misses_.innerHTML);
@@ -815,7 +841,7 @@ class Game {
 Game.defaultWidth      = 21;
 Game.targetThinness    = 72;
 Game.defaultNumTargets = Game.defaultWidth ** 2 / Game.targetThinness;
-Game.spotlightRadius   = 11;
+Game.spotlightRadius   = 10;
 Game.enemies = {
   'chaser': ':>',
   'nommer': ':O',

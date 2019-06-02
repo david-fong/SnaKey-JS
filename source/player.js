@@ -56,9 +56,9 @@ class Player {
     // If the player didn't want to backtrack:
     this.moveStr += key.toLowerCase();
     if (this.matchEasterEgg()) return;
-    const destTiles = this.game.adjacent(this.pos).filter(
-      (adjTile) => this.moveStr.endsWith(adjTile.seq)
-    );
+    const destTiles = this.game.adjacent(this.pos).filter((adjTile) => { 
+      return this.moveStr.endsWith(adjTile.seq);
+    }, this);
     // Handle if the player typed a sequence
     // corresponding to an adjacent tile:
     if (destTiles.length == 1) {
@@ -134,7 +134,7 @@ class Player {
       if (opacity < 1) opacity = 0;
       opacity = (opacity / radius) ** 0.7;
       tile.opacity = '' + opacity;
-    });
+    }, this);
   }
   
   /* Used to calculate the maximum length of 
@@ -208,7 +208,6 @@ class Player {
     
     // Teleportation:
     if (this.moveStr.split('tp').length > 2) {
-      console.log(this.moveStr);
       this.moveStr = '';
       do {
         dest = Pos.rand(this.game.width);
