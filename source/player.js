@@ -32,10 +32,11 @@ class Player {
     this.isDead     = false;
     
     // Spawn the player:
-    this.pos = new Pos();
-    const middle = Math.floor(this.game.width / 2);
-    this.moveOnto(new Pos(middle - this.num, middle));
-    this.prevPos = Pos.copy(this.pos);
+    const middle   = Math.floor(this.game.width / 2);
+    const spawnPos = new Pos(middle - this.num, middle);
+    this.pos       = spawnPos;
+    this.moveOnto(spawnPos);
+    this.game.tileAt(this.pos).opacity = 1;
   }
   
   /* Handles player input, translating it to movement:
@@ -121,20 +122,12 @@ class Player {
           const restore = game.corrupted.shift();
           game.shuffle(restore);
           game.tileAt(restore).coloring = 'tile';
-          
         }
         break;
       }
     }
     
-    // Fade out letters that are far away:
-    const radius = Game.spotlightRadius;
-    this.game.adjacent(this.pos, radius).forEach((tile) => {
-      let opacity = radius - tile.pos.sub(this.pos).norm();
-      if (opacity < 1) opacity = 0;
-      opacity = (opacity / radius) ** 0.7;
-      tile.opacity = '' + opacity;
-    }, this);
+    this.updateSpotlight();
   }
   
   /* Used to calculate the maximum length of 
@@ -176,6 +169,7 @@ class Player {
     
     // Erase player and disable movement:
     this.moveOffOf();
+    this.updateSpotlight();
     const deathSite = Pos.copy(this.pos);
     this.pos = undefined;
     this.isDead = true;
@@ -192,6 +186,14 @@ class Player {
     let totalTime = this.timeDeltas.reduce((a, b) => a + b, 0) + // TODO: get rid of initial value?
       (new Date()).getSeconds() - this.startTime;
     return totalTime / (this.timeDeltas.length + 1);
+  }
+  
+  /* Updates the opacity of all tiles in this player's vicinity. */
+  updateSpotlight() {
+    const dirty = this.game.adjacent(this.pos, Game.spotlightRadius);
+    dirty.forEach((tile) => {
+      this.game.updateTileOpacity(tile);
+    }, this);
   }
   
   // Accessors:

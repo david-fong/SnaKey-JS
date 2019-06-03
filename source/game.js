@@ -81,7 +81,7 @@ function weightedChoice(weights) {
  * make game runner_catch and gameover sounds.
  */
 class Game {
-  constructor(width=Game.defaultWidth, numPlayers=1) {
+  constructor(width=Game.defaultWidth, numPlayers=Game.defaultNumPlayers) {
     if (width < 10) width = 10;
     if (width > 30) width = 30;
     this.grid       = [];
@@ -104,6 +104,7 @@ class Game {
       
       for (let x = 0; x < width; x++) {
         const cell = row.insertCell();
+        cell.className = 'flip-form';
         const tile = new Tile(new Pos(x, y));
         this.grid.push(tile);
         cell.appendChild(tile.face_);
@@ -125,15 +126,11 @@ class Game {
     // Setup invariants and then prompt the player to start the game:
     for (const enemy in Game.enemies) { this[enemy] = new Pos(); }
     this.printStartPrompt('PRESS;SHIFT;ENTER;--2--;START');
-    
-    document.body.onkeydown = () => {
+    document.body.onkeydown = (event) => {
+      if (event.key == 'Enter' && event.shiftKey) {
         this.restart();
-        document.body.onkeydown = () => this.movePlayer(event);
-      // Wait for the printed text to fade,
-      // and then boot up the game :)
-      const begin = (() => {
-      }).bind(this);
-      setTimeout(begin, 500);
+        document.body.onkeydown = (event) => this.movePlayer(event);
+      }
     }
   }
   
@@ -194,6 +191,7 @@ class Game {
   restart() {
     this.restartButton.blur();
     
+    // Apply any restart-only settings changes:
     this.language = new Map(Object.entries(languages[
       document.getElementById('langSelect').value]
     ));
@@ -218,8 +216,11 @@ class Game {
     }, this);
     
     // Spawn players:
-    this.livePlayers = this.allPlayers.slice();
-    for (let player of this.allPlayers) { player.restart(); }
+    this.livePlayers = [];
+    this.allPlayers.forEach((player) => {
+      this.livePlayers.push(player);
+      player.restart();
+    }, this);
     
     // Spawn enemies:
     const slots = Pos.corners(this.width, Math.floor(this.width/10));
@@ -227,10 +228,9 @@ class Game {
     for (let enemy in Game.enemies) {
       this.moveEnemyOnto(enemy, slots.shift());
     }
+    
     // Spawn targets:
-    console.log('spawning targets');
     this.spawnTargets();
-    console.log('done');
     
     // Start the characters moving:
     this.updateTrackLevel();
@@ -297,6 +297,8 @@ class Game {
       this.pauseButton.disabled = true;
       this.spiceButton.disabled = true;
       this.togglePause('pause');
+      
+      this.printStartPrompt('-----;GAME-; </3 ;-OVER;-----');
     }
   }
   
@@ -423,10 +425,16 @@ class Game {
    * position to origin square-norm-wise.
    */
   closestPlayerTo(origin) {
-    const players = this.livePlayers.slice();
     const dist = (player) => player.pos.sub(origin).squareNorm();
-    players.sort((a, b) => dist(a) - dist(b));
-    return players[0];
+    
+    let closest = this.livePlayers[0];
+    this.livePlayers.slice(1).forEach((player) => {
+      if (dist(player) < dist(closest)) {
+        closest = player;
+      }
+    }, this);
+    
+    return closest;
   }
   
   /* TODO: this will need to somehow tell
@@ -436,10 +444,10 @@ class Game {
   movePlayer(event) {
     // Check if a single player wants to pause or restart:
     if (event.key == 'Enter') {
-      // If only one player is online, they may
+      // If zero or one player is alive, they may
       // restart while the game is not over.
       if (event.shiftKey) {
-        if (this.allPlayers.length == 1) {
+        if (this.livePlayers.length <= 1) {
           this.restart();
         }
       // Any player currently online can pause or
@@ -707,6 +715,7 @@ class Game {
     const tile = this.tileAt(pos);
     tile.key = ' ';
     this.shuffle(pos);
+    this.updateTileOpacity(tile);
     
     // Handle coloring:
     if (this.livePlayers.some((player) =>
@@ -732,6 +741,7 @@ class Game {
     this.populations.set(tile.key, this.populations.get(tile.key) - 1);
     this[character] = dest;
     tile.coloring   = character;
+    tile.opacity    = 1;
     tile.key = Game.enemies[character];
     tile.seq = '<br>';
     
@@ -754,6 +764,15 @@ class Game {
     }
   }
   
+  /* Updates a tile's opacity */
+  updateTileOpacity(tile) {
+    let opacity = Game.spotlightRadius;
+    opacity -= tile.pos.sub(this.closestPlayerTo(tile.pos).pos).norm();
+    if (opacity < 0) opacity = 0;
+    
+    // Make changes to tile's opacity:
+    tile.opacity = (opacity / Game.spotlightRadius) ** 0.7;
+  }
   
   clearGrid() {
     for (let tile of this.grid) {
@@ -763,14 +782,15 @@ class Game {
       tile.opacity = 0;
     }
   }
+  
   // Caution: This will clear all grid information.
   printStartPrompt(string) {
     this.clearGrid();
     
     const middle = Math.floor(this.width / 2);
-    const message = string.split(';');;
+    const message = string.split(';');
     const center = new Pos(
-      middle, middle - Math.ceil(message.length / 2)
+      middle, middle - Math.floor(message.length / 2)
     );
     // Prints a word on a line relative to the center:
     const printWord = (word, lineOffset) => {
@@ -839,9 +859,10 @@ class Game {
 }
 // Game base settings:
 Game.defaultWidth      = 21;
+Game.defaultNumPlayers = 1;
 Game.targetThinness    = 72;
 Game.defaultNumTargets = Game.defaultWidth ** 2 / Game.targetThinness;
-Game.spotlightRadius   = 10;
+Game.spotlightRadius   = 9;
 Game.enemies = {
   'chaser': ':>',
   'nommer': ':O',

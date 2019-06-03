@@ -89,6 +89,7 @@ body {
   border-spacing:   calc(var(--tileHt) * 0.085);
 }
 .grid td, .menuItem {
+  position:         relative;
   padding:          0px;
   overflow-x:       hidden;
   overflow-y:       hidden;
@@ -97,14 +98,14 @@ body {
   height:           calc(var(--tileHt) * 0.97);
   width:            calc(var(--tileHt) * 0.97);
   background:       rgba(0,0,0,0);
+  backface-visibility: hidden;
+}
+.grid td div {
+  height:           100%;
+  width:            100%;
 }
 .grid td:hover > div {
   transform:        rotateY(180deg);
-}
-.grid td div {
-  position:         relative;
-  height:           100%;
-  width:            100%;
 }
 .grid td > div {
   border-radius:    15%;
@@ -112,11 +113,12 @@ body {
   transform-style:  preserve-3d;
 }
 .grid td > div > div {
-  position:         absolute;
-  backface-visibility: hidden;
-  transition:       opacity, filter;
-  transition-duration: 0.5s;
-  transition-timing-function: cubic-bezier(.25, .75, .6, 1)
+  position:             absolute;
+  backface-visibility:  hidden;
+  
+  transition:           opacity, filter;
+  transition-duration:  0.40s;
+  transition-timing-function: cubic-bezier(.25,.8,.45,1)
 }
 .grid td > div > .front {
   z-index:          2;
