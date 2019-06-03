@@ -82,12 +82,14 @@ function weightedChoice(weights) {
  */
 class Game {
   constructor(width=Game.defaultWidth, numPlayers=Game.defaultNumPlayers) {
-    if (width < 10) width = 10;
-    if (width > 30) width = 30;
+    if (width < Game.minWidth) width = Game.minWidth;
+    if (width > Game.maxWidth) width = Game.maxWidth;
     this.grid       = [];
     this.width      = width;
     this.numTargets = Math.pow(this.width, 2) / Game.targetThinness;
-    document.documentElement.style.setProperty('--width-in-tiles', width);
+    
+    const dGrid = document.getElementById('grid');
+    dGrid.style.setProperty('--width-in-tiles', width);
     
     // Disable scroll-down via spacebar:
     window.addEventListener('keydown', (event) => {
@@ -98,7 +100,6 @@ class Game {
     });
     
     // Initialize Table display:
-    const dGrid = document.getElementById('grid');
     for (let y = 0; y < width; y++) {
       const row = dGrid.insertRow();
       
@@ -857,18 +858,25 @@ class Game {
     return document.getElementById('muteButton').muteOn;
   }
 }
+
+
 // Game base settings:
 Game.defaultWidth      = 21;
+Game.minWidth          = 10;
+Game.maxWidth          = 30;
+
 Game.defaultNumPlayers = 1;
 Game.targetThinness    = 72;
 Game.defaultNumTargets = Game.defaultWidth ** 2 / Game.targetThinness;
 Game.spotlightRadius   = 9;
+
 Game.enemies = {
   'chaser': ':>',
   'nommer': ':O',
   'runner': ':D',
 };
 Game.doNommerCorrupt = false;
+
 Game.speeds = {
   'slowest': {'lb': 0.17, 'ub': 0.45, 'fullBand': 0.19},
   'slower':  {'lb': 0.26, 'ub': 1.07, 'fullBand': 0.33},

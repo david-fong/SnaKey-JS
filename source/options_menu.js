@@ -40,7 +40,7 @@ function makeOptionsMenu(game, parentElement) {
     const pages         = [];
     for (let i = 0; i < messages.length; i++) {
       const page = document.createElement('div');
-      page.innerHTML = i + '. ' + messages[i];
+      page.innerHTML = i + '.<br>' + messages[i];
       pages.push(page);
       tutorial.appendChild(page);
     }
@@ -88,6 +88,9 @@ function makeOptionsMenu(game, parentElement) {
     }
     langSel.value = 'eng';
     parentElement.appendChild(langSel);
+    langSel.onchange  = () => {
+      langSel.blur();
+    }
   })();
   
   
@@ -99,11 +102,13 @@ function makeOptionsMenu(game, parentElement) {
     for (const fileName of csFileNames) {
       const choice     = document.createElement('option');
       choice.innerHTML = fileName.replace(/_/g, ' ');
-      choice.value     = 'assets/colors/' + fileName + '.css';
+      choice.value     = fileName;
       colorSel.add(choice);
     }
     colorSel.onchange  = () => {
-      document.getElementById('coloring').href = colorSel.value;
+      colorSel.blur();
+      document.getElementById('coloring').href = 
+        'assets/colors/' + colorSel.value + '.css';
     };
     parentElement.appendChild(colorSel);
   })();
