@@ -75,7 +75,14 @@ function weightedChoice(weights) {
  *
  *
  * TODO:
- * work on tutorial pane.
+ * change populations implementation to be separate class:
+ *   array of arrays of keys. outer array holds pool of keys
+ *   that have been spawned <outer-index> times. Initially all in
+ *   outer entry #zero, which is shuffled once on start. When spawned,
+ *   shuffled into next outer-entry at random spot. When spawning,
+ *   go through each key in order until one is found that can spawn there.
+ * 
+ * fix the broken progress/difficulty bar (broken because of cs selectors)
  * fix bugs with the new backtracking.
  * 
  * make game runner_catch and gameover sounds.
@@ -193,18 +200,15 @@ class Game {
     this.restartButton.blur();
     
     // Apply any restart-only settings changes:
-    this.language = new Map(Object.entries(languages[
-      document.getElementById('langSelect').value]
-    ));
+    document.getElementById('languageSource').href =
+      'assets/languages/' + langSel.value + '.js';
+    this.language = createLanguageInterpreter();
     this.speed = Object.assign({}, Game.speeds[
       document.getElementById('speedSelect').value]
     );
       
     // Reset all display-key populations:
-    this.populations = new Map();
-    for (const key of this.language.keys()) {
-      this.populations.set(key, 0);
-    }
+    this.populations = new Populations(this.language.allKeys());
     this.targets   = [];
     this.corrupted = [];
     this.heat      = 0;
@@ -318,11 +322,13 @@ class Game {
       const weights = new Map();
       const lowest  = Math.min(...this.populations.values());
       
+      // TODO: see note for this class.
       const neighbors = this.adjacent(pos, 2);
-      this.language.forEach((val, key, map) => {
-        if (!neighbors.some((nbTile) => 
-          (nbTile.seq.includes(val) || val.includes(nbTile.seq))
-        )) {
+      this.language.allKeys().forEach((key) => {
+        if (!neighbors.some((nbTile) => {
+          let seq = this.language.key2seq(key);
+          return (nbTile.seq.includes(seq) || seq.includes(nbTile.seq));
+        })) {
           weights.set(key, 4 ** (lowest - this.populations.get(key)));
         }
       }, this);
@@ -331,7 +337,7 @@ class Game {
       this.populations.set(choice, this.populations.get(choice) + 1);
       const tile = this.tileAt(pos);
       tile.key   = choice;
-      tile.seq   = this.language.get(choice);
+      tile.seq   = this.language.key2seq(choice);
       
     // If corrupting a tile:
     } else {
@@ -438,9 +444,11 @@ class Game {
     return closest;
   }
   
-  /* TODO: this will need to somehow tell
-   * which player triggered the event.
-   * triggered by some incoming remote data package:
+  /* Handles restart and pause key commands,
+   * and delegates backtrack and move commands
+   * to their corresponding player. Players
+   * make their inputs unique through keyboard
+   * toggles {CapsLock, NumLock, & ScrollLock}.
    */
   movePlayer(event) {
     // Check if a single player wants to pause or restart:
@@ -466,13 +474,21 @@ class Game {
     if (event.key.length > 1 && !(Player.backtrackKeys.has(event.key))) {
       return;
     }
-    // Temporary way to decide which
-    // player the move belongs to:
-    if (!event.shiftKey) {
-      this.allPlayers[0].move(event.key);
-    } else if (this.allPlayers.length > 1) {
-      this.allPlayers[1].move(event.key);
+    // Decide which player the move belongs to:
+    let playerNum = 0;
+    playerNum &= event.getModifierState(  'CapsLock') << 0;
+    playerNum &= event.getModifierState(   'NumLock') << 1;
+    playerNum &= event.getModifierState('ScrollLock') << 2;
+    
+    // Clean input and send to handler:
+    let key = event.key;
+    if (key.length == 0) {
+      key = key.toLowerCase();
+      if (event.shiftKey) {
+        key = key.toUpperCase();
+      }
     }
+    this.allPlayers[playerNum].move(key);
   }
   
   /* Chaser moves in the direction of the player.
@@ -831,7 +847,9 @@ class Game {
     return counter;
   }
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
-  isCharacter(tile) { return !(this.language.has(tile.key)); }
+  isCharacter(tile) {
+    return tile.key in Object.entries();
+  }
   
   get misses() {
     return parseInt(this.misses_.innerHTML);

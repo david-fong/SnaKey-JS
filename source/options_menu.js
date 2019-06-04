@@ -80,17 +80,18 @@ function makeOptionsMenu(game, parentElement) {
     langSel.id        = 'langSelect';
     langSel.className = 'menuItem';
     langSel.name      = 'language';
-    for (const lang in languages) {
+    for (const fileName in languageSourceFileNames) {
       const choice     = document.createElement('option');
-      choice.innerHTML = lang;
-      choice.value     = lang;
+      choice.innerHTML = fileName.replace(/_/g, ' ');
+      choice.value     = fileName;
       langSel.add(choice);
     }
-    langSel.value = 'eng';
-    parentElement.appendChild(langSel);
     langSel.onchange  = () => {
       langSel.blur();
-    }
+    };
+    parentElement.appendChild(langSel);
+    langSel.value = languageSourceFileNames[0];
+    langSel.onchange();
   })();
   
   
@@ -99,7 +100,7 @@ function makeOptionsMenu(game, parentElement) {
     const colorSel     = document.createElement('select');
     colorSel.className = 'menuItem';
     colorSel.name      = 'coloring';
-    for (const fileName of csFileNames) {
+    for (const fileName of coloringSourceFileNames) {
       const choice     = document.createElement('option');
       choice.innerHTML = fileName.replace(/_/g, ' ');
       choice.value     = fileName;
@@ -107,7 +108,7 @@ function makeOptionsMenu(game, parentElement) {
     }
     colorSel.onchange  = () => {
       colorSel.blur();
-      document.getElementById('coloring').href = 
+      document.getElementById('coloringSource').href = 
         'assets/colors/' + colorSel.value + '.css';
     };
     parentElement.appendChild(colorSel);

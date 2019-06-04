@@ -69,6 +69,9 @@ body {
   cursor:           pointer;
   font:             inherit;
 }
+select > option {
+  background-color: red;
+}
 .tutorial {
   flex-basis:       20vh;
 }

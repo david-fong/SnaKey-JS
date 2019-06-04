@@ -55,7 +55,7 @@ class Player {
     }
     
     // If the player didn't want to backtrack:
-    this.moveStr += key.toLowerCase();
+    this.moveStr += key;
     if (this.matchEasterEgg()) return;
     const destTiles = this.game.adjacent(this.pos).filter((adjTile) => { 
       return this.moveStr.endsWith(adjTile.seq);

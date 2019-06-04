@@ -22,19 +22,28 @@
           type='text/css'
           href='style.css'>
           </style>
+          
+    <!-- List of language filenames (no spaces): -->
+    <script> const languageSourceFileNames = [
+      'eng', 'jpn_h', 'jpn_k', 'kor'
+    ]; </script>
+    <!-- Variable Language: -->
+    <link rel='stylesheet'
+          type='text/css'
+          id='languageSource'>
+          
     <!-- List of color scheme filenames (no spaces): -->
-    <script>
-      const csFileNames = [
-        'dark_theme_nw', 'sheep',
-      ];
-    </script>
+    <script> const coloringSourceFileNames = [
+      'dark_theme_nw', 'sheep',
+    ]; </script>
     <!-- Variable Color Scheme: -->
     <link rel='stylesheet'
           type='text/css'
-          href='assets/colors/dark_theme_nw.css'
-          id='coloring'>
+          id='coloringSource'>
   </head>
-    
+  
+  
+  
   <body style='margin:0px;'>
     <div class='background'></div>
     
@@ -56,4 +65,7 @@
       const game = new Game();
     </script>
   </body>
+  
+  
+  
 <html>
