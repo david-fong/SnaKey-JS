@@ -1,12 +1,5 @@
 'use strict';
 
-/* Used to create an instance of the language
- * interpreter defined in this file.
- */
-const createLanguageInterpreter = () => {
-  return new EnglishInterpreter();
-}
-
 /* 
  * 
  */
@@ -29,6 +22,10 @@ class EnglishInterpreter {
    * containing all keys from this language.
    */
   allKeys() {
-    return 'abcdefghijklmnopqrstuvwxyz';
+    return [...'abcdefghijklmnopqrstuvwxyz'];
   }
+  
+  get langName() { return 'English'; }
 }
+
+INTERPRETERS.register(EnglishInterpreter);

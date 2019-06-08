@@ -1,12 +1,5 @@
 'use strict';
 
-/* Used to create an instance of the language
- * interpreter defined in this file.
- */
-const createLanguageInterpreter = () => {
-  return new KoreanRomanizationInterpreter();
-}
-
 /* 
  * 
  */
@@ -35,4 +28,8 @@ class KoreanRomanizationInterpreter {
   allKeys() {
     return null;
   }
+  
+  get langName() { return 'Korean Romanization'; }
 }
+
+INTERPRETERS.set('Korean Romanization', KoreanRomanizationInterpreter);

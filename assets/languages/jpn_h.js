@@ -1,12 +1,5 @@
 'use strict';
 
-/* Used to create an instance of the language
- * interpreter defined in this file.
- */
-const createLanguageInterpreter = () => {
-  return new JapaneseHiraganaInterpreter();
-}
-
 /* 
  * 
  */
@@ -35,7 +28,7 @@ class JapaneseHiraganaInterpreter {
      ...'ざじずぜぞだぢづでどばびぶべぼ',
      ...'ぱぴぷぺぽやゆよわをん',
      ].forEach((c, i) => {
-        k2s.set(c) = jpn_r[i];
+        this.k2s.set(c, jpn_r[i]);
      });
   }
   
@@ -46,17 +39,17 @@ class JapaneseHiraganaInterpreter {
    * is not from this language.
    */
   key2seq(key) {
-    let seq = '';
-    
-    
-    
-    return seq;
+    return this.k2s.get(key);
   }
   
   /* Returns a safe copy of an iterable collection
    * containing all keys from this language.
    */
   allKeys() {
-    return null;
+    return this.k2s.keys();
   }
+  
+  get langName() { return 'Japanese Hiragana'; }
 }
+
+INTERPRETERS.register(JapaneseHiraganaInterpreter);

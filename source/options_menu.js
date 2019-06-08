@@ -77,20 +77,21 @@ function makeOptionsMenu(game, parentElement) {
   // Language:
   const makeLanguageItem = (() => {
     const langSel     = document.createElement('select');
-    langSel.id        = 'langSelect';
+    langSel.id        = 'languageSelect';
     langSel.className = 'menuItem';
     langSel.name      = 'language';
-    for (const fileName in languageSourceFileNames) {
+    
+    for (const languageName of INTERPRETERS.keys()) {
       const choice     = document.createElement('option');
-      choice.innerHTML = fileName.replace(/_/g, ' ');
-      choice.value     = fileName;
+      choice.innerHTML = languageName;
+      choice.value     = languageName;
       langSel.add(choice);
     }
-    langSel.onchange  = () => {
+    langSel.onchange = () => {
       langSel.blur();
     };
     parentElement.appendChild(langSel);
-    langSel.value = languageSourceFileNames[0];
+    langSel.selectedIndex = 0;
     langSel.onchange();
   })();
   
@@ -112,6 +113,8 @@ function makeOptionsMenu(game, parentElement) {
         'assets/colors/' + colorSel.value + '.css';
     };
     parentElement.appendChild(colorSel);
+    colorSel.selectedIndex = 0;
+    colorSel.onchange();
   })();
 
   // Mute:

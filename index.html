@@ -8,7 +8,6 @@
     <meta charset='UTF-8' />
     <link rel='icon' href='assets/favicon.png' type='image/png'/>
     
-    <script src='source/languages.js' charset='UTF-8'></script>
     <script src='source/sounds.js'>       </script>
     <script src='source/options_menu.js'> </script>
 
@@ -23,19 +22,30 @@
           href='style.css'>
           </style>
           
-    <!-- List of language filenames (no spaces): -->
-    <script> const languageSourceFileNames = [
-      'eng', 'jpn_h', 'jpn_k', 'kor'
-    ]; </script>
-    <!-- Variable Language: -->
-    <link rel='stylesheet'
-          type='text/css'
-          id='languageSource'>
+    <!-- List of language filenames: -->
+    <script>
+      const INTERPRETERS = new Map();
+      INTERPRETERS.register = (interpreter) => {
+        INTERPRETERS.set(
+          interpreter.prototype.langName,
+          interpreter.prototype.constructor
+        );
+      }
+    </script>
+    <script charset='UTF-8' src='assets/languages/eng.js'></script>
+    <script charset='UTF-8' src='assets/languages/jpn_h.js'></script>
+    <script charset='UTF-8' src='assets/languages/jpn_k.js'></script>
+    <!--
+    <script charset='UTF-8' src='assets/languages/kor_kbd.js'></script>
+    <script charset='UTF-8' src='assets/languages/kor_rmn.js'></script>
+    -->
           
-    <!-- List of color scheme filenames (no spaces): -->
-    <script> const coloringSourceFileNames = [
-      'dark_theme_nw', 'sheep',
-    ]; </script>
+    <!-- List of color scheme filenames: -->
+    <script>
+      const coloringSourceFileNames = [
+        'dark_theme_nw', 'sheep',
+      ];
+    </script>
     <!-- Variable Color Scheme: -->
     <link rel='stylesheet'
           type='text/css'
@@ -44,6 +54,7 @@
   
   
   
+  <!-- DOCUMENT BODY -->
   <body style='margin:0px;'>
     <div class='background'></div>
     
@@ -62,10 +73,7 @@
     
     <!-- Run Game Code: -->
     <script>
-      const game = new Game();
+      const GAME = new Game();
     </script>
   </body>
-  
-  
-  
 <html>

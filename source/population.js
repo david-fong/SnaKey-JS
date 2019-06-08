@@ -12,7 +12,7 @@ class Population {
   }
   
   restart() {
-    const startPool = [...this.game.language.allKeys()]; // <- can also handle strings
+    const startPool = this.game.language.allKeys(); // <- can also handle strings
     startPool.sort((a, b) => 0.5 - Math.random());
     this.pools = [startPool, ];
   }

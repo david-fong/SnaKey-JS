@@ -200,15 +200,21 @@ class Game {
     this.restartButton.blur();
     
     // Apply any restart-only settings changes:
-    document.getElementById('languageSource').href =
-      'assets/languages/' + langSel.value + '.js';
-    this.language = createLanguageInterpreter();
-    this.speed = Object.assign({}, Game.speeds[
-      document.getElementById('speedSelect').value]
+    const langName = document.getElementById('languageSelect').value;
+    if (this.language == undefined || langName != this.language.langName) {
+      console.log('language has changed');
+      this.language = new (INTERPRETERS.get(langName))();
+    }
+    this.speed = Object.assign({}, 
+      Game.speeds[document.getElementById('speedSelect').value]
     );
       
     // Reset all display-key populations:
-    this.populations = new Populations(this.language.allKeys());
+    // TODO: change to this.populations = new Populations(this.language.allKeys());
+    this.populations = new Map();
+    for (const key of this.language.allKeys()) {
+      this.populations.set(key, 0);
+    }
     this.targets   = [];
     this.corrupted = [];
     this.heat      = 0;
@@ -303,7 +309,7 @@ class Game {
       this.spiceButton.disabled = true;
       this.togglePause('pause');
       
-      this.printStartPrompt('-----;GAME-; </3 ;-OVER;-----');
+      this.printStartPrompt('*****;GAME*;*</3*;*OVER;*****');
     }
   }
   
@@ -324,14 +330,14 @@ class Game {
       
       // TODO: see note for this class.
       const neighbors = this.adjacent(pos, 2);
-      this.language.allKeys().forEach((key) => {
+      for (const key of this.language.allKeys()) {
         if (!neighbors.some((nbTile) => {
-          let seq = this.language.key2seq(key);
+          const seq = this.language.key2seq(key);
           return (nbTile.seq.includes(seq) || seq.includes(nbTile.seq));
         })) {
           weights.set(key, 4 ** (lowest - this.populations.get(key)));
         }
-      }, this);
+      }
       const choice = weightedChoice(weights);
       
       this.populations.set(choice, this.populations.get(choice) + 1);
@@ -448,7 +454,7 @@ class Game {
    * and delegates backtrack and move commands
    * to their corresponding player. Players
    * make their inputs unique through keyboard
-   * toggles {CapsLock, NumLock, & ScrollLock}.
+   * toggles {CapsLock, NumLock, & ScrollLock}
    */
   movePlayer(event) {
     // Check if a single player wants to pause or restart:
@@ -474,6 +480,7 @@ class Game {
     if (event.key.length > 1 && !(Player.backtrackKeys.has(event.key))) {
       return;
     }
+    
     // Decide which player the move belongs to:
     let playerNum = 0;
     playerNum &= event.getModifierState(  'CapsLock') << 0;
@@ -848,7 +855,8 @@ class Game {
   }
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
   isCharacter(tile) {
-    return tile.key in Object.entries();
+    return tile.key in Object.entries(Game.enemies) ||
+      tile.key == Player.playerFace;
   }
   
   get misses() {

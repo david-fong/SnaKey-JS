@@ -1,12 +1,5 @@
 'use strict';
 
-/* Used to create an instance of the language
- * interpreter defined in this file.
- */
-const createLanguageInterpreter = () => {
-  return new JapaneseKatakanaInterpreter();
-}
-
 /* 
  * 
  */
@@ -35,7 +28,7 @@ class JapaneseKatakanaInterpreter {
      ...'ザジズゼゾダヂヅデドバビブベボ',
      ...'パピプペポヤユヨワヲン',
      ].forEach((c, i) => {
-        this.k2s.set(c) = jpn_r[i];
+        this.k2s.set(c, jpn_r[i]);
       });
   }
   
@@ -53,6 +46,10 @@ class JapaneseKatakanaInterpreter {
    * containing all keys from this language.
    */
   allKeys() {
-    return null;
+    return this.k2s.keys();
   }
+  
+  get langName() { return 'Japanese Katakana'; }
 }
+
+INTERPRETERS.register(JapaneseKatakanaInterpreter);
