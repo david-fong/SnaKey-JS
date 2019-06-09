@@ -1,12 +1,13 @@
 /* GENERAL */
 body {
-  --pauseFilter:    grayscale(100%) brightness(130%) contrast(60%);
-  
   font:             90% Trebuchet MS;
   text-align:       center;
   color:            black;
   transition:       filter 0.5s ease-in-out;
   user-select:      none;
+}
+[data-paused] {
+  filter:           grayscale(100%) brightness(130%) contrast(60%);
 }
 .background {
   height:           100%;

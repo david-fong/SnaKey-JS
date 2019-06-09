@@ -75,15 +75,10 @@ function weightedChoice(weights) {
  *
  *
  * TODO:
- * change populations implementation to be separate class:
- *   array of arrays of keys. outer array holds pool of keys
- *   that have been spawned <outer-index> times. Initially all in
- *   outer entry #zero, which is shuffled once on start. When spawned,
- *   shuffled into next outer-entry at random spot. When spawning,
- *   go through each key in order until one is found that can spawn there.
+ * somehow move away from balancing populations on shuffle
+ *   with such space&computationally costly methods.
  * 
  * fix the broken progress/difficulty bar (broken because of cs selectors)
- * fix bugs with the new backtracking.
  * 
  * make game runner_catch and gameover sounds.
  */
@@ -97,14 +92,6 @@ class Game {
     
     const dGrid = document.getElementById('grid');
     dGrid.style.setProperty('--width-in-tiles', width);
-    
-    // Disable scroll-down via spacebar:
-    window.addEventListener('keydown', (event) => {
-      if (event.keyCode == 32 && event.target == document.body) {
-        event.preventDefault();
-        return false;
-      }
-    });
     
     // Initialize Table display:
     for (let y = 0; y < width; y++) {
@@ -274,14 +261,14 @@ class Game {
     // The player pressed the pause button:
     if (!this.paused) {
       this.backgroundMusic.pause();
-      document.body.style.filter = 'var(--pauseFilter)';
+      document.body.dataset.paused = 'this attribute exists.';
       
     // The user pressed the un-pause button:
     } else {
       if (!this.muted) {
         this.backgroundMusic.play();
       }
-      document.body.style.filter = '';
+      delete document.body.dataset.paused;
       this.chaserCancel = setTimeout(that.moveChaser.bind(that), 1000);
       this.nommerCancel = setTimeout(that.moveNommer.bind(that), 1000);
       this.runnerCancel = setTimeout(that.moveRunner.bind(that), 1000);

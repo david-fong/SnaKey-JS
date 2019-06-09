@@ -109,7 +109,9 @@ class Player {
     for (let i = 0; i < game.targets.length; i++) {
       if (dest.equals(game.targets[i])) {
         this.score += 1;
-        if (!this.game.muted) SoundEffects.playEffectFrom(Player.eatSounds);
+        if (!this.game.muted) {
+          SoundEffects.playEffectFrom(Player.eatSounds);
+        }
         game.heat = game.numTargets * Math.sqrt(
           game.heat / game.numTargets + 1);
         

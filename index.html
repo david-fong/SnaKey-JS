@@ -6,7 +6,7 @@
     <meta name='description'  content='An original game based on the snake game.' />
     <meta name='viewport'     content='width=device-width, initial-scale=1.0' />
     <meta charset='UTF-8' />
-    <link rel='icon' href='assets/favicon.png' type='image/png'/>
+    <link rel='icon' href='favicon.ico' type='image/png'/>
     
     <script src='source/sounds.js'>       </script>
     <script src='source/options_menu.js'> </script>
@@ -19,7 +19,7 @@
     <!-- Main Formatting: -->
     <link rel='stylesheet'
           type='text/css'
-          href='style.css'>
+          href='assets/style.css'>
           </style>
           
     <!-- List of language filenames: -->
@@ -73,6 +73,14 @@
     
     <!-- Run Game Code: -->
     <script>
+      // Disable scroll-down via spacebar:
+      window.addEventListener('keydown', (event) => {
+        if (event.keyCode == 32 && event.target == document.body) {
+          event.preventDefault();
+          return false;
+        }
+      });
+      
       const GAME = new Game();
     </script>
   </body>
