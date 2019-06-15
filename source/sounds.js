@@ -9,7 +9,7 @@ class SoundEffects {
   static makeVariants(filename, numVariants, volume=1.0) {
     let variants = [];
     for (let i = 0; i < numVariants; i++) {
-      let path = 'assets/sounds/' + filename + i + '.wav';
+      let path = 'assets/sounds/' + filename + '/' + i + '.wav';
       let variant = new Audio(path);
       variant.volume = volume;
       variants.push(variant);

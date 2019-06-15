@@ -6,15 +6,15 @@ body {
   transition:       filter 0.5s ease-in-out;
   user-select:      none;
 }
-[data-paused] {
-  filter:           grayscale(100%) brightness(130%) contrast(60%);
+body[data-paused] {
+  filter:           grayscale(  100%) 
+                    brightness( 130%) 
+                    contrast(    60%);
 }
 .background {
   height:           100%;
   width:            100%;
   position:         fixed;
-  top:              0px;
-  left:             0px;
   z-index:          -1;
   background-color: var(--lines);
 }
@@ -70,9 +70,6 @@ body {
   cursor:           pointer;
   font:             inherit;
 }
-select > option {
-  background-color: red;
-}
 .tutorial {
   flex-basis:       20vh;
 }
@@ -100,70 +97,57 @@ select > option {
   border-spacing:   calc(var(--tileHt) * 0.085);
 }
 /* Tile Shape/Form */
-.grid td, .menuItem {
+.tileForm, .menuItem {
   position:         relative;
   padding:          0px;
   overflow-x:       hidden;
   overflow-y:       hidden;
 }
-.grid td {
+.tileForm {
   height:           calc(var(--tileHt) * 0.97);
   width:            calc(var(--tileHt) * 0.97);
-  background:       rgba(0,0,0,0);
-  backface-visibility: hidden;
+  background-color: var(--tileBg);
 }
-/* Tile Coloring */
-.grid td div {
+.tileForm, .tileFace {
+  border-radius:    15%;
+}
+.tileFace {
+  box-shadow:       inherit;
+}
+.tileFace, .tileText {
   height:           100%;
   width:            100%;
 }
-.grid td:hover > div {
-  transform:        rotateY(180deg);
-}
-.grid td > div {
-  border-radius:    15%;
-  transition:       transform 0.35s ease-in-out;
-  transform-style:  preserve-3d;
-}
 /* Tile Text */
-.grid td > div > div {
+.tileFace > .tileText {
   position:             absolute;
-  backface-visibility:  hidden;
-  
   transition:           opacity, filter;
   transition-duration:  0.40s;
-  transition-timing-function: cubic-bezier(.25,.8,.45,1)
+  transition-timing-function: cubic-bezier(.25,.8,.45,1);
 }
-.grid td > div > .front {
-  z-index:          2;
-}
-.grid td > div > .back {
-  transform:        rotateY(180deg);
-}
+.tileFace       > .mouseOverText { visibility: hidden; }
+.tileFace:hover > .mouseOverText { visibility: visible; }
+.tileFace:hover > .mouseOffText  { visibility: hidden; }
 
 
 
-/* TILE COLORING */
-.tile, .menuItem {
-          background-color: var(--tileBg);
-          color:            var(--tileFg);  }
-.target { background-color: var(--target);  }
-.corrupt {background-color: var(--tileBg);  
-          opacity:          0.65;           }
-.player { background-color: var(--player);  }
-.trail  { background-color: var(--trailBg);
-          color:            var(--trailFg); }
-.chaser { background-color: var(--chaser);  }
-.nommer { background-color: var(--nommer);  }
-.runner { background-color: var(--runner);  }
+/* TILE FACE COLORING */
+.tileForm[data-type=tile]   > .tileFace, .menuItem { 
+                                          background-color: var(--tileBg);
+                                          color:            var(--tileFg); }
+.tileForm[data-type=target] > .tileFace { background-color: var(--target); }
+.tileForm[data-type=corrupt]> .tileFace { background-color: var(--tileBg);  
+                                          opacity:          0.65;          }
+.tileForm[data-type=player] > .tileFace { background-color: var(--player); }
+.tileForm[data-trail]       > .tileFace { background-color: var(--trailBg);
+                                          color:            var(--trailFg); }
+.tileForm[data-type=chaser] > .tileFace { background-color: var(--chaser); }
+.tileForm[data-type=nommer] > .tileFace { background-color: var(--nommer); }
+.tileForm[data-type=runner] > .tileFace { background-color: var(--runner); }
 
 /* adds an outline to characters: */
-.grid td [class$='er'], .target {
+.tileForm[data-type$=er], 
+.tileForm[data-type=target] {
   box-shadow: 0 0 0px 0.08em white inset;
-}
-.trail, .target, .corrupt {
-  transition-property:      background-color, color, opacity;
-  transition-duration:      0.65s;
-  transition-timing-function: ease;
 }
 

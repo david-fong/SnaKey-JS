@@ -3,37 +3,42 @@
 /* 
  */
 class Tile {
-  constructor(pos) {
-    this.pos   = pos;
+  constructor(parentElem, pos) {
+    this.pos = pos;
     
     // This will carry character-specific coloring:
-    this.face_ = document.createElement('div');
+    const tileTypeElem = document.createElement('div');
+    tileTypeElem.className = 'tileFace';
     
-    this.front_ = document.createElement('div');
-    this.back_  = document.createElement('div');
-    this.front_.className = 'front';
-    this.back_.className  = 'back';
-
-    this.face_.appendChild(this.front_);
-    this.face_.appendChild(this.back_);
+    this.mouseOffText  = document.createElement('div');
+    this.mouseOverText = document.createElement('div');
+    
+    this.mouseOffText.className  = 'tileText mouseOffText';
+    this.mouseOverText.className = 'tileText mouseOverText';
+    
+    tileTypeElem.appendChild(this.mouseOffText);
+    tileTypeElem.appendChild(this.mouseOverText);
+    
+    parentElem.className = 'tileForm';
+    parentElem.appendChild(tileTypeElem);
+    this.tileBodyElem = parentElem;
   }
   
-  get key()    { return this.front_.innerHTML; }
-  set key(key) { this.front_.innerHTML = key;  }
+  get key()    { return this.mouseOffText.innerHTML; }
+  set key(key) { this.mouseOffText.innerHTML = key;  }
   
-  get seq()    { return this.back_.innerHTML;  }
-  set seq(seq) { this.back_.innerHTML = seq;   }
+  get seq()    { return this.mouseOverText.innerHTML; }
+  set seq(seq) { this.mouseOverText.innerHTML = seq;  }
   
   get coloring() {
-    return this.face_.className;
+    return this.tileBodyElem.dataset.type;
   }
-  set coloring(cl) {
-    this.face_.className = cl;
+  set coloring(coloring) {
+    this.tileBodyElem.dataset.type = coloring;
   }
   set opacity(opacity) {
-    this.front_.style.opacity = opacity;
-    this.back_.style.opacity  = opacity;
-    //this.front_.style.WebkitFilter = 'blur(500%)';
+    this.mouseOffText.style.opacity  = opacity;
+    this.mouseOverText.style.opacity = opacity;
   }
 }
 
@@ -52,7 +57,7 @@ function weightedChoice(weights) {
 
 
 /* Object keys:
- * -- width         : number:[10,30]
+ * -- width         : number:N
  * -- numTargets    : number:N
  * -- grid          : [Tile, ]
  * -- populations   : Map<string:number> lang character -> kbd sequence
@@ -77,6 +82,9 @@ function weightedChoice(weights) {
  * TODO:
  * somehow move away from balancing populations on shuffle
  *   with such space&computationally costly methods.
+ * refactor tiles to have dataset.type attribute for coloring
+ *  ^the setter can also set a isCharacter field by checking if it is not 'tile' or 'target'
+ * make tile have a bg, coloring overlay set in css file according to data-type, and two text divs that change z-index
  * 
  * fix the broken progress/difficulty bar (broken because of cs selectors)
  * 
@@ -98,11 +106,12 @@ class Game {
       const row = dGrid.insertRow();
       
       for (let x = 0; x < width; x++) {
-        const cell = row.insertCell();
-        cell.className = 'flip-form';
-        const tile = new Tile(new Pos(x, y));
-        this.grid.push(tile);
-        cell.appendChild(tile.face_);
+        this.grid.push(
+          new Tile(
+            row.insertCell(),
+            new Pos(x, y),
+          )
+        );
       }
     }
     // Initialize background music with all 12 tracks:
@@ -157,15 +166,15 @@ class Game {
     // Progress bar:
     const makeProgress = (() => {
       const progress = document.createElement('div');
-      progress.className  = 'menuItem progress';
-      const chaserIcon    = new Tile(new Pos());
-      chaserIcon.key      = Game.enemies['chaser'];
-      chaserIcon.coloring = 'progress chaser';
-      progress.appendChild(chaserIcon.face_);
+      progress.className = 'menuItem progress';
       
+      const chaserElem   = document.createElement('td');
+      const chaserTile   = new Tile(chaserElem, new Pos());
+      chaserTile.key     = Game.enemies['chaser'];
+      
+      progress.appendChild(chaserElem);
       progress.set = (val) => {
-        const calc = ['calc(', ' * (100% - var(--tileHt))', ];
-        chaserIcon.face_.style.left = calc.join(val);
+        chaserElem.style.left = 'calc(' + val + ' * (100% - var(--tileHt))';
       }
       bar.appendChild(progress);
       this.progressBar = progress;
@@ -261,7 +270,7 @@ class Game {
     // The player pressed the pause button:
     if (!this.paused) {
       this.backgroundMusic.pause();
-      document.body.dataset.paused = 'this attribute exists.';
+      document.body.dataset.paused = '';
       
     // The user pressed the un-pause button:
     } else {
