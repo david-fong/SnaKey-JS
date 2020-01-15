@@ -14,7 +14,7 @@ HTTP.createServer((req, res) => {
   const url = URL.parse(req.url, true)
   
   // discard leading slash character:
-  let  path = url.pathname;
+  let path = url.pathname;
   if (path.length == 0) { path = 'index.html'; }
   FS.access(path, (err) => {
     if (err || path.includes('..')) {
@@ -23,10 +23,7 @@ HTTP.createServer((req, res) => {
   });
   
   // Get the http content type and query arguments object:
-  const ctype = contentTypes[path.split('.').pop().toLowerCase()];
   const query = url.query;
-  
-  res.end(index);
   
   // Respond to a request:
   if (req.method == 'GET') {
@@ -35,7 +32,7 @@ HTTP.createServer((req, res) => {
         console.error(err);
         res.statusCode = 400;
       } else {
-        res.writeHead(200);//, {'Content-Type': ctype});
+        res.writeHead(200);
         res.write(data);
       }
       res.end();
@@ -47,17 +44,3 @@ HTTP.createServer((req, res) => {
   }
   
 }).listen(PORT_NUM);
-
-
-
-const contentTypes = {
-  'html': 'text/html',
-  'js':   'text/javascript',
-  'css':  'text/css',
-  'txt':  'text/plain',
-  
-  'png':  'image/png',
-  'ico':  'x-icon',
-  'wav':  'audio/wav',
-  'mp3':  'audio/mpeg',
-}

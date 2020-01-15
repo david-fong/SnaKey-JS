@@ -6,22 +6,23 @@ class Tile {
   constructor(parentElem, pos) {
     this.pos = pos;
     
-    // This will carry character-specific coloring:
-    const tileTypeElem = document.createElement('div');
-    tileTypeElem.className = 'tileFace';
+    this.tileFaceElem = document.createElement('div');
+    this.tileFaceElem.className = 'tileFace';
     
     this.mouseOffText  = document.createElement('div');
     this.mouseOverText = document.createElement('div');
+    const outlineFrame = document.createElement('div');
     
     this.mouseOffText.className  = 'tileText mouseOffText';
     this.mouseOverText.className = 'tileText mouseOverText';
+    outlineFrame.className       = 'tileText outlineFrame';
     
-    tileTypeElem.appendChild(this.mouseOffText);
-    tileTypeElem.appendChild(this.mouseOverText);
+    this.tileFaceElem.appendChild(this.mouseOffText);
+    this.tileFaceElem.appendChild(this.mouseOverText);
     
     parentElem.className = 'tileForm';
-    parentElem.appendChild(tileTypeElem);
-    this.tileBodyElem = parentElem;
+    parentElem.appendChild(outlineFrame);
+    parentElem.appendChild(this.tileFaceElem);
   }
   
   get key()    { return this.mouseOffText.innerHTML; }
@@ -30,15 +31,21 @@ class Tile {
   get seq()    { return this.mouseOverText.innerHTML; }
   set seq(seq) { this.mouseOverText.innerHTML = seq;  }
   
-  get coloring() {
-    return this.tileBodyElem.dataset.type;
+  get floorType() {
+    return this.tileFaceElem.dataset.floorType;
   }
-  set coloring(coloring) {
-    this.tileBodyElem.dataset.type = coloring;
+  set floorType(type) {
+    this.tileFaceElem.dataset.floorType = type;
   }
+  get characterType() {
+    return this.tileFaceElem.dataset.characterType;
+  }
+  set characterType(type) {
+    this.tileFaceElem.dataset.characterType = type;
+  }
+  
   set opacity(opacity) {
-    this.mouseOffText.style.opacity  = opacity;
-    this.mouseOverText.style.opacity = opacity;
+    this.tileFaceElem.style.opacity  = opacity;
   }
 }
 
@@ -69,7 +76,6 @@ function weightedChoice(weights) {
  * -- progressBar   : <span>
  *
  * -- targets       : [Pos,]
- * -- corrupted     : [Pos,]
  * -- heat          : number:R
  * -- misses        : <span>
  *
@@ -106,12 +112,7 @@ class Game {
       const row = dGrid.insertRow();
       
       for (let x = 0; x < width; x++) {
-        this.grid.push(
-          new Tile(
-            row.insertCell(),
-            new Pos(x, y),
-          )
-        );
+        this.grid.push(new Tile(row.insertCell(), new Pos(x, y)));
       }
     }
     // Initialize background music with all 12 tracks:
@@ -124,11 +125,11 @@ class Game {
     }
     // Make menus:
     window.onblur = () => this.togglePause('pause');
-    this.makeLowerBar();
+    this.makeScoringBar();
     makeOptionsMenu(this, document.getElementById('optionsBar'));
     
     // Setup invariants and then prompt the player to start the game:
-    for (const enemy in Game.enemies) { this[enemy] = new Pos(); }
+    for (const enemy in Game.enemyFaces) { this[enemy] = new Pos(); }
     this.printStartPrompt('PRESS;SHIFT;ENTER;--2--;START');
     document.body.onkeydown = (event) => {
       if (event.key == 'Enter' && event.shiftKey) {
@@ -141,7 +142,7 @@ class Game {
   /* Creates restart and pause buttons,
    * and also score and misses counters.
    */
-  makeLowerBar() {
+  makeScoringBar() {
     const bar = document.getElementById('scoringBar');
     
     // Setup button displays:
@@ -170,7 +171,7 @@ class Game {
       
       const chaserElem   = document.createElement('td');
       const chaserTile   = new Tile(chaserElem, new Pos());
-      chaserTile.key     = Game.enemies['chaser'];
+      chaserTile.key     = Game.enemyFaces['chaser'];
       
       progress.appendChild(chaserElem);
       progress.set = (val) => {
@@ -212,7 +213,6 @@ class Game {
       this.populations.set(key, 0);
     }
     this.targets   = [];
-    this.corrupted = [];
     this.heat      = 0;
     this.misses_.innerHTML = 0;
     
@@ -232,7 +232,7 @@ class Game {
     // Spawn enemies:
     const slots = Pos.corners(this.width, Math.floor(this.width/10));
     slots.sort((a, b) => Math.random() - 0.5);
-    for (let enemy in Game.enemies) {
+    for (let enemy in Game.enemyFaces) {
       this.moveEnemyOnto(enemy, slots.shift());
     }
     
@@ -247,7 +247,7 @@ class Game {
     this.spiceButton.disabled = false;
   }
   
-  /* Freezes Game.enemies and disables player movement.
+  /* Freezes Game.enemyFaces and disables player movement.
    * Toggles the pause button to unpause on next click.
    */
   togglePause(force=undefined) {
@@ -261,18 +261,18 @@ class Game {
       return;
     }
     
-    // Freeze all the Game.enemies:
+    // Freeze all the enemies:
     const that = this;
     clearTimeout(that.chaserCancel);
     clearTimeout(that.nommerCancel);
     clearTimeout(that.runnerCancel);
     
-    // The player pressed the pause button:
+    // Go to the paused state:
     if (!this.paused) {
       this.backgroundMusic.pause();
       document.body.dataset.paused = '';
       
-    // The user pressed the un-pause button:
+    // Go to the unpaused state:
     } else {
       if (!this.muted) {
         this.backgroundMusic.play();
@@ -290,12 +290,9 @@ class Game {
    */
   killPlayer(player) {
     const deathSite = player.die(); // f
-    for (let i = 0; i < this.livePlayers.length; i++) {
-      if (this.livePlayers[i].num == player.num) {
-        this.livePlayers.splice(i, 1);
-        break;
-      }
-    }
+    this.livePlayers = this.livePlayers.filter((player) => {
+      return !(player.isDead);
+    });
     this.moveEnemyOnto('chaser', deathSite);
     
     // If all players are dead, end
@@ -316,39 +313,28 @@ class Game {
    * previous key's population record is 
    * expected to be done externally.
    */
-  shuffle(pos, corrupt=false) {
-    // If shuffling a tile:
-    if (!corrupt) {
-      // Filter all keys, keeping those that
-      // won't cause movement ambiguities:
-      const weights = new Map();
-      const lowest  = Math.min(...this.populations.values());
-      
-      // TODO: see note for this class.
-      const neighbors = this.adjacent(pos, 2);
-      for (const key of this.language.allKeys()) {
-        if (!neighbors.some((nbTile) => {
-          const seq = this.language.key2seq(key);
-          return (nbTile.seq.includes(seq) || seq.includes(nbTile.seq));
-        })) {
-          weights.set(key, 4 ** (lowest - this.populations.get(key)));
-        }
+  shuffle(pos) {
+    // Filter all keys, keeping those that
+    // won't cause movement ambiguities:
+    const weights = new Map();
+    const lowest  = Math.min(...this.populations.values());
+    
+    // TODO: see note for this class.
+    const neighbors = this.adjacent(pos, 2);
+    for (const key of this.language.allKeys()) {
+      if (!neighbors.some((nbTile) => {
+        const seq = this.language.key2seq(key);
+        return (nbTile.seq.includes(seq) || seq.includes(nbTile.seq));
+      })) {
+        weights.set(key, 4 ** (lowest - this.populations.get(key)));
       }
-      const choice = weightedChoice(weights);
-      
-      this.populations.set(choice, this.populations.get(choice) + 1);
-      const tile = this.tileAt(pos);
-      tile.key   = choice;
-      tile.seq   = this.language.key2seq(choice);
-      
-    // If corrupting a tile:
-    } else {
-      this.corrupted.push(pos);
-      const tile = this.tileAt(pos);
-      tile.coloring = 'corrupt';
-      tile.key = '';
-      tile.seq = '#';
     }
+    const choice = weightedChoice(weights);
+    
+    this.populations.set(choice, this.populations.get(choice) + 1);
+    const tile = this.tileAt(pos);
+    tile.key   = choice;
+    tile.seq   = this.language.key2seq(choice);
   }
   
   /* Maintains a fixed number ot targets on the grid.
@@ -363,7 +349,7 @@ class Game {
     while(this.targets.length < this.numTargets) {
       const choice = weightedChoice(weights);
       this.targets.push(choice);
-      this.tileAt(choice).coloring = 'target';
+      this.tileAt(choice).floorType = 'target';
       weights.delete(choice);
     }
   }
@@ -471,6 +457,8 @@ class Game {
     } else if (this.paused) {
       return;
     }
+    console.log(Object.values(Game.enemyFaces));
+    console.log(this.grid.filter(t => this.isCharacter(t)).map(t => t.key));
     
     // Ignore non-letter keys:
     if (event.key.length > 1 && !(Player.backtrackKeys.has(event.key))) {
@@ -736,19 +724,6 @@ class Game {
     tile.key = ' ';
     this.shuffle(pos);
     this.updateTileOpacity(tile);
-    
-    // Handle coloring:
-    if (this.livePlayers.some((player) =>
-      player.trail.hist.some(
-        (trPos) => pos.equals(trPos)
-      ))) {
-      tile.coloring = 'trail';
-    } else if (notHungry && 
-        this.targets.some((tgPos) => pos.equals(tgPos))) {
-      tile.coloring = 'target';
-    } else {
-      tile.coloring = 'tile';
-    }
   }
   
   /* Assumes that dest does not contain a character.
@@ -760,21 +735,14 @@ class Game {
     if (this.isCharacter(tile)) throw 'cannot land on character.';
     this.populations.set(tile.key, this.populations.get(tile.key) - 1);
     this[character] = dest;
-    tile.coloring   = character;
-    tile.opacity    = 1;
-    tile.key = Game.enemies[character];
-    tile.seq = '<br>';
+    tile.character  = character;
+    tile.key = Game.enemyFaces[character];
+    tile.seq = '';
     
     // Check if a hungry character landed on a target:
     if (!hungry) { return; }
     for (let i = 0; i < this.targets.length; i++) {
       if (dest.equals(this.targets[i])) {
-        // Corrupt a random tile:
-        if (Game.doNommerCorrupt) {
-          const corrupt = weightedChoice(this.getItemSpawnWeights());
-          this.shuffle(corrupt, true);
-        }
-        
         this.misses += 1;
         // Remove this Pos from the targets list:
         this.targets.splice(i, 1);
@@ -798,7 +766,7 @@ class Game {
     for (let tile of this.grid) {
       tile.key = ' ';
       tile.seq = '<br>';
-      tile.coloring = 'tile';
+      tile.floorType = 'tile';
       tile.opacity = 0;
     }
   }
@@ -819,7 +787,6 @@ class Game {
         const caret = this.tileAt(
           center.add(new Pos(i - charOffset, lineOffset))
         );
-        //caret.coloring = 'target';
         caret.key = word[i];
         caret.seq = word[i];
         caret.opacity = 1;
@@ -849,10 +816,11 @@ class Game {
     slot.appendChild(counter);
     return counter;
   }
+  
   tileAt(pos) { return this.grid[pos.y * this.width + pos.x]; }
   isCharacter(tile) {
-    return tile.key in Object.entries(Game.enemies) ||
-      tile.key == Player.playerFace;
+    return (Object.values(Game.enemyFaces).includes(tile.key) ||
+      Player.playerFace == tile.key);
   }
   
   get misses() {
@@ -892,12 +860,11 @@ Game.targetThinness    = 72;
 Game.defaultNumTargets = Game.defaultWidth ** 2 / Game.targetThinness;
 Game.spotlightRadius   = 9;
 
-Game.enemies = {
+Game.enemyFaces = {
   'chaser': ':>',
   'nommer': ':O',
   'runner': ':D',
 };
-Game.doNommerCorrupt = false;
 
 Game.speeds = {
   'slowest': {'lb': 0.17, 'ub': 0.45, 'fullBand': 0.19},

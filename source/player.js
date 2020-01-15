@@ -81,7 +81,8 @@ class Player {
     tile.key = ' ';
     tile.seq = '<br>';
     this.game.shuffle(this.pos);
-    tile.coloring = 'trail';
+    delete tile.characterType;
+    tile.floorType = 'trail';
   }
   
   /* Moves the player onto the position of the
@@ -98,9 +99,9 @@ class Player {
     this.pos      = dest;
     this.trimTrail();
     
-    tile.coloring = 'player';
-    tile.key      = Player.playerFace;
-    tile.seq      = this.num;
+    tile.characterType = 'player';
+    tile.key = Player.playerFace;
+    tile.seq = this.num;
     
     // Play a movement sound:
     SoundEffects.playEffectFrom(Player.moveSounds);
@@ -118,13 +119,6 @@ class Player {
         // Remove this Pos from the targets list:
         game.targets.splice(i, 1);
         game.spawnTargets();
-        
-        // Restore the oldest corrupted tile:
-        if (game.corrupted.length > 0) {
-          const restore = game.corrupted.shift();
-          game.shuffle(restore);
-          game.tileAt(restore).coloring = 'tile';
-        }
         break;
       }
     }
@@ -148,8 +142,8 @@ class Player {
   trimTrail() {
     for (const evicted of this.trail.trim()) {
       const endTile = this.game.tileAt(evicted);
-      if (endTile.coloring == 'trail') {
-        endTile.coloring = 'tile';
+      if (endTile.floorType == 'trail') {
+        endTile.floorType = 'tile';
       }
     }
   }
@@ -164,8 +158,8 @@ class Player {
     // Erase the trail:
     for (const trPos of this.trail.hist) {
       const trTile = this.game.tileAt(trPos);
-      if (trTile.coloring == 'trail') {
-        trTile.coloring = 'tile';
+      if (trTile.floorType == 'trail') {
+        trTile.floorType = 'tile';
       }
     }
     

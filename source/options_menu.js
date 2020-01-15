@@ -15,12 +15,12 @@ function makeOptionsMenu(game, parentElement) {
 
     'Eat targets to increase your score.',
     'The game ends when the chaser \"' + 
-      Game.enemies['chaser'] + '\" catches you.',
+      Game.enemyFaces['chaser'] + '\" catches you.',
     'The chaser speeds up based on your score. ' +
       '(And also how many targets you\'ve missed)',
 
     'Misses come from targets eaten by the nommer: \"' + 
-      Game.enemies['nommer'] + '\"',
+      Game.enemyFaces['nommer'] + '\"',
     'The nommer cannot kill you.',
     'Misses make the game more difficult ' +
       'without improving your final score.',
@@ -28,7 +28,7 @@ function makeOptionsMenu(game, parentElement) {
     'Wouldn\'t it be nice if there was a way ' +
       'to cut down your misses? (spoiler: there is)',
     ' If you catch (go right beside) the runner, \"' +
-      Game.enemies['runner'] +
+      Game.enemyFaces['runner'] +
       '\", your misses will be cut down by a fraction.',
 
     'If you find the game too easy, press the ' +

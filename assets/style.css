@@ -96,7 +96,6 @@ body[data-paused] {
   font-size:        calc(var(--tileHt) * 0.800);
   border-spacing:   calc(var(--tileHt) * 0.085);
 }
-/* Tile Shape/Form */
 .tileForm, .menuItem {
   position:         relative;
   padding:          0px;
@@ -107,47 +106,54 @@ body[data-paused] {
   height:           calc(var(--tileHt) * 0.97);
   width:            calc(var(--tileHt) * 0.97);
   background-color: var(--tileBg);
-}
-.tileForm, .tileFace {
   border-radius:    15%;
-}
-.tileFace {
-  box-shadow:       inherit;
 }
 .tileFace, .tileText {
   height:           100%;
   width:            100%;
 }
-/* Tile Text */
-.tileFace > .tileText {
+.tileText {
   position:             absolute;
-  transition:           opacity, filter;
+  transition:           opacity;
   transition-duration:  0.40s;
   transition-timing-function: cubic-bezier(.25,.8,.45,1);
 }
 .tileFace       > .mouseOverText { visibility: hidden; }
 .tileFace:hover > .mouseOverText { visibility: visible; }
 .tileFace:hover > .mouseOffText  { visibility: hidden; }
+.outlineFrame {
+  visibility:       hidden;
+  border-radius:    15%;
+  box-shadow: 0 0 0px 0.08em white inset;
+}
 
 
 
 /* TILE FACE COLORING */
-.tileForm[data-type=tile]   > .tileFace, .menuItem { 
-                                          background-color: var(--tileBg);
-                                          color:            var(--tileFg); }
-.tileForm[data-type=target] > .tileFace { background-color: var(--target); }
-.tileForm[data-type=corrupt]> .tileFace { background-color: var(--tileBg);  
-                                          opacity:          0.65;          }
-.tileForm[data-type=player] > .tileFace { background-color: var(--player); }
-.tileForm[data-trail]       > .tileFace { background-color: var(--trailBg);
-                                          color:            var(--trailFg); }
-.tileForm[data-type=chaser] > .tileFace { background-color: var(--chaser); }
-.tileForm[data-type=nommer] > .tileFace { background-color: var(--nommer); }
-.tileForm[data-type=runner] > .tileFace { background-color: var(--runner); }
-
-/* adds an outline to characters: */
-.tileForm[data-type$=er], 
-.tileForm[data-type=target] {
-  box-shadow: 0 0 0px 0.08em white inset;
+.tileFace:not([data-character-type])[data-floor-type=tile], .menuItem {
+  background-color: var(--tileBg);
+  color:            var(--tileFg);
+}
+.tileFace:not([data-character-type])[data-floor-type=target] {
+  background-color: var(--target);
+}
+.tileFace:not([data-character-type])[data-trail] {
+  background-color: var(--trailBg);
+  color:            var(--trailFg);
+}
+.tileFace[data-character-type=player] {
+  background-color: var(--player);
+}
+.tileFace[data-character-type=chaser] {
+  background-color: var(--chaser);
+}
+.tileFace[data-character-type=nommer] {
+  background-color: var(--nommer);
+}
+.tileFace[data-character-type=runner] {
+  background-color: var(--runner);
+}
+.outline[data-character-type] {
+  visibility:       visible;
 }
 
