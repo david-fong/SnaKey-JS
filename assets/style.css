@@ -71,7 +71,7 @@ body {
   font:             inherit;
 }
 select > option {
-  background-color: red;
+  background-color: var(--tileBg);
 }
 .tutorial {
   flex-basis:       20vh;
