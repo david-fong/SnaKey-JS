@@ -7,7 +7,7 @@ A port of [**the first version**](https://github.com/david-fong/SnaKey) of this 
 
 As a preface, I'd like to say that while I'm really happy with this idea, I'm really not happy with the code. This was my first project using html/css/javascript, and I didn't have much to go off of (ie. spent more than half the time reading from w3cschools and mozilla docs). While I learned a lot, I also learned that of what there is to learn, I learned very little. If I were to do this all over again (and I do hope to), I would learn typescript to make it cleaner and more robust, and learn nodejs to make the game multiplayer.
 
-`EDIT:` The dream lives! Take a look at [**`the next version`**](https://github.com/david-fong/SnaKey-NTS).
+`EDIT:` The dream lives! Take a look at [**`the next version`**](https://github.com/david-fong/capswalk).
 
 ## How it started:
 
